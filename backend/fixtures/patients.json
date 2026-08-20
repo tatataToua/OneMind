@@ -1,0 +1,709 @@
+[
+  {
+    "patient_id": "12345",
+    "mrn": "MRN-672113",
+    "ssn": "541-63-1736",
+    "name": "Samuel Ferreira",
+    "birth_date": "1979-10-22",
+    "gender": "male",
+    "phone": "(555) 493-1882",
+    "conditions": [
+      {
+        "code": "N18.3",
+        "display": "Chronic kidney disease, stage 3"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Tiotropium",
+        "dose": "18 mcg",
+        "frequency": "once daily"
+      },
+      {
+        "name": "Insulin glargine",
+        "dose": "18 units",
+        "frequency": "at bedtime"
+      },
+      {
+        "name": "Apixaban",
+        "dose": "5 mg",
+        "frequency": "twice daily"
+      },
+      {
+        "name": "Atorvastatin",
+        "dose": "20 mg",
+        "frequency": "at bedtime"
+      }
+    ],
+    "labs": [
+      {
+        "name": "Hemoglobin A1c",
+        "value": 7.7,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 8.8,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 8.2,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "eGFR",
+        "value": 94.3,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 77.5,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 67.4,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Potassium",
+        "value": 4.7,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.3,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 4.6,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-5803",
+        "date": "2026-07-22",
+        "type": "telehealth",
+        "reason": "Chronic kidney disease, stage 3"
+      }
+    ]
+  },
+  {
+    "patient_id": "12456",
+    "mrn": "MRN-722520",
+    "ssn": "712-91-1355",
+    "name": "Rosa Lindqvist",
+    "birth_date": "1975-03-07",
+    "gender": "female",
+    "phone": "(555) 838-9844",
+    "conditions": [
+      {
+        "code": "J44.9",
+        "display": "Chronic obstructive pulmonary disease, unspecified"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Metformin",
+        "dose": "500 mg",
+        "frequency": "twice daily"
+      },
+      {
+        "name": "Atorvastatin",
+        "dose": "20 mg",
+        "frequency": "at bedtime"
+      }
+    ],
+    "labs": [
+      {
+        "name": "eGFR",
+        "value": 51.6,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 22.9,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 75.3,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.3,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.3,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.0,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 5.7,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 9.6,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 10.5,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-9558",
+        "date": "2025-12-09",
+        "type": "ambulatory",
+        "reason": "Chronic obstructive pulmonary disease, unspecified"
+      }
+    ]
+  },
+  {
+    "patient_id": "12567",
+    "mrn": "MRN-780630",
+    "ssn": "857-87-7964",
+    "name": "Dana Raman",
+    "birth_date": "1988-09-23",
+    "gender": "female",
+    "phone": "(555) 492-2179",
+    "conditions": [
+      {
+        "code": "I48.91",
+        "display": "Unspecified atrial fibrillation"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Insulin glargine",
+        "dose": "18 units",
+        "frequency": "at bedtime"
+      },
+      {
+        "name": "Atorvastatin",
+        "dose": "20 mg",
+        "frequency": "at bedtime"
+      },
+      {
+        "name": "Tiotropium",
+        "dose": "18 mcg",
+        "frequency": "once daily"
+      }
+    ],
+    "labs": [
+      {
+        "name": "Potassium",
+        "value": 5.0,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 4.1,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 3.2,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 9.7,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 7.8,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 8.2,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 93.0,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 145.9,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 138.7,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "eGFR",
+        "value": 34.0,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 35.7,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 78.4,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-6513",
+        "date": "2026-07-14",
+        "type": "emergency",
+        "reason": "Unspecified atrial fibrillation"
+      },
+      {
+        "encounter_id": "ENC-1818",
+        "date": "2026-01-30",
+        "type": "telehealth",
+        "reason": "Unspecified atrial fibrillation"
+      }
+    ]
+  },
+  {
+    "patient_id": "12678",
+    "mrn": "MRN-423493",
+    "ssn": "195-55-7092",
+    "name": "Samuel Whitfield",
+    "birth_date": "1990-03-06",
+    "gender": "male",
+    "phone": "(555) 878-2344",
+    "conditions": [
+      {
+        "code": "N18.3",
+        "display": "Chronic kidney disease, stage 3"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Insulin glargine",
+        "dose": "18 units",
+        "frequency": "at bedtime"
+      },
+      {
+        "name": "Tiotropium",
+        "dose": "18 mcg",
+        "frequency": "once daily"
+      }
+    ],
+    "labs": [
+      {
+        "name": "LDL cholesterol",
+        "value": 104.1,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 158.5,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 122.7,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 7.9,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 8.1,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 6.1,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.7,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 4.7,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.7,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "eGFR",
+        "value": 24.8,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 85.2,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 94.6,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-4779",
+        "date": "2026-07-04",
+        "type": "emergency",
+        "reason": "Chronic kidney disease, stage 3"
+      }
+    ]
+  },
+  {
+    "patient_id": "12789",
+    "mrn": "MRN-544793",
+    "ssn": "523-24-4668",
+    "name": "Marcus Okafor",
+    "birth_date": "1979-03-27",
+    "gender": "male",
+    "phone": "(555) 735-2435",
+    "conditions": [
+      {
+        "code": "J44.9",
+        "display": "Chronic obstructive pulmonary disease, unspecified"
+      },
+      {
+        "code": "I10",
+        "display": "Essential (primary) hypertension"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Atorvastatin",
+        "dose": "20 mg",
+        "frequency": "at bedtime"
+      },
+      {
+        "name": "Apixaban",
+        "dose": "5 mg",
+        "frequency": "twice daily"
+      }
+    ],
+    "labs": [
+      {
+        "name": "LDL cholesterol",
+        "value": 141.2,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 84.3,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 182.6,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "eGFR",
+        "value": 95.8,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 41.4,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 23.3,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Potassium",
+        "value": 3.7,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.5,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 5.9,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 6.4,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 7.4,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Hemoglobin A1c",
+        "value": 10.1,
+        "unit": "%",
+        "reference_upper": 5.7,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-3471",
+        "date": "2026-05-23",
+        "type": "emergency",
+        "reason": "Chronic obstructive pulmonary disease, unspecified"
+      },
+      {
+        "encounter_id": "ENC-8187",
+        "date": "2026-07-17",
+        "type": "telehealth",
+        "reason": "Essential (primary) hypertension"
+      }
+    ]
+  },
+  {
+    "patient_id": "12900",
+    "mrn": "MRN-911572",
+    "ssn": "529-32-2991",
+    "name": "Marcus Ferreira",
+    "birth_date": "1948-09-13",
+    "gender": "male",
+    "phone": "(555) 915-2620",
+    "conditions": [
+      {
+        "code": "I10",
+        "display": "Essential (primary) hypertension"
+      },
+      {
+        "code": "I48.91",
+        "display": "Unspecified atrial fibrillation"
+      },
+      {
+        "code": "N18.3",
+        "display": "Chronic kidney disease, stage 3"
+      }
+    ],
+    "medications": [
+      {
+        "name": "Tiotropium",
+        "dose": "18 mcg",
+        "frequency": "once daily"
+      },
+      {
+        "name": "Lisinopril",
+        "dose": "10 mg",
+        "frequency": "once daily"
+      },
+      {
+        "name": "Insulin glargine",
+        "dose": "18 units",
+        "frequency": "at bedtime"
+      }
+    ],
+    "labs": [
+      {
+        "name": "Potassium",
+        "value": 4.2,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "Potassium",
+        "value": 3.9,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "Potassium",
+        "value": 4.4,
+        "unit": "mmol/L",
+        "reference_upper": 5.1,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "eGFR",
+        "value": 55.8,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "eGFR",
+        "value": 89.7,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "eGFR",
+        "value": 53.4,
+        "unit": "mL/min/1.73m2",
+        "reference_upper": 60.0,
+        "effective_date": "2026-07-31"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 120.2,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2025-12-23"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 158.1,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-04-22"
+      },
+      {
+        "name": "LDL cholesterol",
+        "value": 134.3,
+        "unit": "mg/dL",
+        "reference_upper": 100.0,
+        "effective_date": "2026-07-31"
+      }
+    ],
+    "encounters": [
+      {
+        "encounter_id": "ENC-8267",
+        "date": "2026-05-12",
+        "type": "emergency",
+        "reason": "Chronic kidney disease, stage 3"
+      }
+    ]
+  }
+]

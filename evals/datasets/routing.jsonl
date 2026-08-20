@@ -1,0 +1,102 @@
+{"id": "clin-01", "prompt": "What medications is patient 12345 currently taking?", "expect": ["clinical"]}
+{"id": "clin-02", "prompt": "Show me the most recent lab results for patient 12456", "expect": ["clinical"]}
+{"id": "clin-03", "prompt": "What conditions are on this patient's problem list?", "expect": ["clinical"]}
+{"id": "clin-04", "prompt": "When was patient 12567 last seen, and what was the visit for?", "expect": ["clinical"]}
+{"id": "clin-05", "prompt": "Is the patient's A1c trending in the right direction?", "expect": ["clinical"]}
+{"id": "clin-06", "prompt": "Pull up the encounter history for MRN-672113", "expect": ["clinical"]}
+{"id": "clin-07", "prompt": "Which of this patient's lab values came back abnormal?", "expect": ["clinical"]}
+{"id": "clin-08", "prompt": "Does patient 12789 have a documented COPD diagnosis?", "expect": ["clinical"]}
+{"id": "clin-09", "prompt": "What is the current insulin regimen for this patient?", "expect": ["clinical"]}
+{"id": "clin-10", "prompt": "Summarise the clinical history for patient 12900", "expect": ["clinical"]}
+{"id": "clin-11", "prompt": "Has this patient had an eGFR drawn in the last year?", "expect": ["clinical"]}
+{"id": "clin-12", "prompt": "List all active prescriptions for patient 12678", "expect": ["clinical"]}
+{"id": "clin-13", "prompt": "What was the reason for the most recent emergency encounter?", "expect": ["clinical"]}
+{"id": "clin-14", "prompt": "Check whether the patient is on an anticoagulant", "expect": ["clinical"]}
+{"id": "clin-15", "prompt": "What stage is this patient's chronic kidney disease?", "expect": ["clinical"]}
+{"id": "clin-16", "prompt": "Give me the demographics on record for patient 12456", "expect": ["clinical"]}
+{"id": "clin-17", "prompt": "Are there any potassium results outside the reference range?", "expect": ["clinical"]}
+{"id": "clin-18", "prompt": "How many telehealth visits has patient 12567 had?", "expect": ["clinical"]}
+{"id": "clin-19", "prompt": "What dose of atorvastatin is the patient on?", "expect": ["clinical"]}
+{"id": "clin-20", "prompt": "Look up the patient record and tell me their date of birth", "expect": ["clinical"]}
+{"id": "rev-01", "prompt": "Why was claim CLM-8849 denied?", "expect": ["revenue_cycle"]}
+{"id": "rev-02", "prompt": "What is our overall denial rate right now?", "expect": ["revenue_cycle"]}
+{"id": "rev-03", "prompt": "Which payer denies the most claims?", "expect": ["revenue_cycle"]}
+{"id": "rev-04", "prompt": "Is CPT 99214 a valid code, and what does it cover?", "expect": ["revenue_cycle"]}
+{"id": "rev-05", "prompt": "How much revenue is sitting in denied claims?", "expect": ["revenue_cycle"]}
+{"id": "rev-06", "prompt": "What does denial code CO-197 mean?", "expect": ["revenue_cycle"]}
+{"id": "rev-07", "prompt": "Show me all claims filed for patient 12900", "expect": ["revenue_cycle"]}
+{"id": "rev-08", "prompt": "What was billed on claim CLM-8858?", "expect": ["revenue_cycle"]}
+{"id": "rev-09", "prompt": "Break down our top denial reasons for Northwind Care", "expect": ["revenue_cycle"]}
+{"id": "rev-10", "prompt": "Was the allowed amount less than what we billed on this claim?", "expect": ["revenue_cycle"]}
+{"id": "rev-11", "prompt": "Validate ICD-10 code E11.9 for me", "expect": ["revenue_cycle"]}
+{"id": "rev-12", "prompt": "How many claims did Meridian Health reject?", "expect": ["revenue_cycle"]}
+{"id": "rev-13", "prompt": "Which CPT code should have been used for the insulin pump?", "expect": ["revenue_cycle"]}
+{"id": "rev-14", "prompt": "Are we losing money to timely filing denials?", "expect": ["revenue_cycle"]}
+{"id": "rev-15", "prompt": "Give me the reimbursement status on claim CLM-8861", "expect": ["revenue_cycle"]}
+{"id": "rev-16", "prompt": "What is the dollar value at risk from precertification denials?", "expect": ["revenue_cycle"]}
+{"id": "rev-17", "prompt": "Is code 95250 billable for continuous glucose monitoring?", "expect": ["revenue_cycle"]}
+{"id": "rev-18", "prompt": "Summarise our adjudication outcomes this period", "expect": ["revenue_cycle"]}
+{"id": "rev-19", "prompt": "Which claims were denied for missing information?", "expect": ["revenue_cycle"]}
+{"id": "rev-20", "prompt": "What percentage of billed charges are we actually collecting?", "expect": ["revenue_cycle"]}
+{"id": "comp-01", "prompt": "Do we need a BAA with a vendor that only processes de-identified data?", "expect": ["compliance"]}
+{"id": "comp-02", "prompt": "How long are we required to retain audit logs of PHI access?", "expect": ["compliance"]}
+{"id": "comp-03", "prompt": "What counts as a reportable breach under HIPAA?", "expect": ["compliance"]}
+{"id": "comp-04", "prompt": "Which identifiers have to be removed for Safe Harbor de-identification?", "expect": ["compliance"]}
+{"id": "comp-05", "prompt": "What encryption standard do we require for data at rest?", "expect": ["compliance"]}
+{"id": "comp-06", "prompt": "Does a cloud storage provider qualify for the conduit exception?", "expect": ["compliance"]}
+{"id": "comp-07", "prompt": "What is our minimum necessary policy for automated systems?", "expect": ["compliance"]}
+{"id": "comp-08", "prompt": "How many days do we have to notify individuals after a breach?", "expect": ["compliance"]}
+{"id": "comp-09", "prompt": "Is TLS 1.1 acceptable for transmitting PHI?", "expect": ["compliance"]}
+{"id": "comp-10", "prompt": "What are the four breach risk assessment factors?", "expect": ["compliance"]}
+{"id": "comp-11", "prompt": "Do we need to report a breach if the data was properly encrypted?", "expect": ["compliance"]}
+{"id": "comp-12", "prompt": "What does our policy say about sending PHI to an external inference endpoint?", "expect": ["compliance"]}
+{"id": "comp-13", "prompt": "How should media containing PHI be disposed of?", "expect": ["compliance"]}
+{"id": "comp-14", "prompt": "What is the Expert Determination method for de-identification?", "expect": ["compliance"]}
+{"id": "comp-15", "prompt": "How often must encryption keys be rotated?", "expect": ["compliance"]}
+{"id": "comp-16", "prompt": "Are ages over 89 handled differently under Safe Harbor?", "expect": ["compliance"]}
+{"id": "comp-17", "prompt": "What ISO 27001 controls apply to our access management?", "expect": ["compliance"]}
+{"id": "comp-18", "prompt": "Can audit logs themselves contain PHI values?", "expect": ["compliance"]}
+{"id": "comp-19", "prompt": "Does running inference on our own hardware satisfy the in-transit requirement?", "expect": ["compliance"]}
+{"id": "comp-20", "prompt": "When is a BAA required for a subcontractor?", "expect": ["compliance"]}
+{"id": "rpm-01", "prompt": "Has patient 12456 breached their SpO2 alert threshold recently?", "expect": ["remote_monitoring"]}
+{"id": "rpm-02", "prompt": "The blood pressure cuff has been reading high for three days straight", "expect": ["remote_monitoring"]}
+{"id": "rpm-03", "prompt": "What is the current alert threshold configured for heart rate?", "expect": ["remote_monitoring"]}
+{"id": "rpm-04", "prompt": "Show me the last two weeks of glucose readings for patient 12678", "expect": ["remote_monitoring"]}
+{"id": "rpm-05", "prompt": "Are any monitored patients trending toward an alert?", "expect": ["remote_monitoring"]}
+{"id": "rpm-06", "prompt": "How many readings has device DEV-2012 sent in the last week?", "expect": ["remote_monitoring"]}
+{"id": "rpm-07", "prompt": "Is the patient's oxygen saturation dropping?", "expect": ["remote_monitoring"]}
+{"id": "rpm-08", "prompt": "What was the highest systolic reading recorded this week?", "expect": ["remote_monitoring"]}
+{"id": "rpm-09", "prompt": "Give me the telemetry trend for patient 12567", "expect": ["remote_monitoring"]}
+{"id": "rpm-10", "prompt": "Which devices are reporting sustained threshold breaches?", "expect": ["remote_monitoring"]}
+{"id": "rpm-11", "prompt": "How many consecutive days has this patient been above threshold?", "expect": ["remote_monitoring"]}
+{"id": "rpm-12", "prompt": "What is the average heart rate over the monitoring window?", "expect": ["remote_monitoring"]}
+{"id": "rpm-13", "prompt": "Did any vitals readings breach limits overnight?", "expect": ["remote_monitoring"]}
+{"id": "rpm-14", "prompt": "Show me device readings that triggered an alert", "expect": ["remote_monitoring"]}
+{"id": "rpm-15", "prompt": "Is the glucose monitor showing an upward trend?", "expect": ["remote_monitoring"]}
+{"id": "rpm-16", "prompt": "What metric is device DEV-9201 tracking?", "expect": ["remote_monitoring"]}
+{"id": "rpm-17", "prompt": "Compare this week's vitals against the alert limits", "expect": ["remote_monitoring"]}
+{"id": "rpm-18", "prompt": "Has the remote monitoring data been stable for patient 12345?", "expect": ["remote_monitoring"]}
+{"id": "rpm-19", "prompt": "What is the lowest oxygen saturation we have recorded?", "expect": ["remote_monitoring"]}
+{"id": "rpm-20", "prompt": "Are the sensor readings within the configured range?", "expect": ["remote_monitoring"]}
+{"id": "x-01", "prompt": "Claim CLM-8849 for patient 12345 was denied. Check their diagnosis history and tell me whether the billed code matches.", "expect": ["clinical", "revenue_cycle"]}
+{"id": "x-02", "prompt": "Is our device telemetry retention compliant, and has patient 12345 breached their blood pressure threshold?", "expect": ["compliance", "remote_monitoring"]}
+{"id": "x-03", "prompt": "The patient was denied for their insulin pump - check the diagnosis history and the claim", "expect": ["clinical", "revenue_cycle"]}
+{"id": "x-04", "prompt": "Do the patient's recorded conditions support the ICD-10 code we billed?", "expect": ["clinical", "revenue_cycle"]}
+{"id": "x-05", "prompt": "Are we allowed to keep this telemetry, and what is the device actually reporting?", "expect": ["compliance", "remote_monitoring"]}
+{"id": "x-06", "prompt": "The monitor shows sustained high readings - does the chart document a matching diagnosis?", "expect": ["clinical", "remote_monitoring"]}
+{"id": "x-07", "prompt": "Can we bill remote monitoring for this patient, and are their readings breaching threshold?", "expect": ["revenue_cycle", "remote_monitoring"]}
+{"id": "x-08", "prompt": "What is our denial rate, and how long must we retain the claims records?", "expect": ["revenue_cycle", "compliance"]}
+{"id": "x-09", "prompt": "Pull the patient's medications and confirm whether we need a BAA to share them with our analytics vendor", "expect": ["clinical", "compliance"]}
+{"id": "x-10", "prompt": "Check the lab results and tell me whether the claim we filed used the right diagnosis code", "expect": ["clinical", "revenue_cycle"]}
+{"id": "x-11", "prompt": "Has the device alerted, and does policy let us archive those readings for seven years?", "expect": ["compliance", "remote_monitoring"]}
+{"id": "x-12", "prompt": "Review the encounter history and the denial reason on the associated claim", "expect": ["clinical", "revenue_cycle"]}
+{"id": "amb-01", "prompt": "check the numbers", "expect": []}
+{"id": "amb-02", "prompt": "look into it please", "expect": []}
+{"id": "amb-03", "prompt": "Can you help me with the thing for the patient?", "expect": []}
+{"id": "amb-04", "prompt": "something looks wrong", "expect": []}
+{"id": "amb-05", "prompt": "follow up on this one", "expect": []}
+{"id": "amb-06", "prompt": "what do you think?", "expect": []}
+{"id": "amb-07", "prompt": "handle it", "expect": []}
+{"id": "amb-08", "prompt": "review the file", "expect": []}
+{"id": "amb-09", "prompt": "is that normal?", "expect": []}
+{"id": "amb-10", "prompt": "give me an update", "expect": []}

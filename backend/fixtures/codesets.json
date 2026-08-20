@@ -1,0 +1,68 @@
+{
+  "icd10": [
+    {
+      "code": "E11.9",
+      "display": "Type 2 diabetes mellitus without complications"
+    },
+    {
+      "code": "I10",
+      "display": "Essential (primary) hypertension"
+    },
+    {
+      "code": "J44.9",
+      "display": "Chronic obstructive pulmonary disease, unspecified"
+    },
+    {
+      "code": "N18.3",
+      "display": "Chronic kidney disease, stage 3"
+    },
+    {
+      "code": "I48.91",
+      "display": "Unspecified atrial fibrillation"
+    }
+  ],
+  "cpt": [
+    {
+      "code": "99214",
+      "display": "Office visit, established patient, moderate complexity"
+    },
+    {
+      "code": "95250",
+      "display": "Continuous glucose monitoring, sensor placement and training"
+    },
+    {
+      "code": "E0784",
+      "display": "External ambulatory insulin infusion pump"
+    },
+    {
+      "code": "93000",
+      "display": "Electrocardiogram, routine ECG with interpretation"
+    },
+    {
+      "code": "99457",
+      "display": "Remote physiologic monitoring treatment management, first 20 minutes"
+    }
+  ],
+  "denial_codes": [
+    {
+      "code": "CO-197",
+      "display": "Precertification/authorization absent"
+    },
+    {
+      "code": "CO-16",
+      "display": "Claim lacks information needed for adjudication"
+    },
+    {
+      "code": "CO-11",
+      "display": "Diagnosis inconsistent with the procedure"
+    },
+    {
+      "code": "CO-29",
+      "display": "Time limit for filing has expired"
+    },
+    {
+      "code": "PR-204",
+      "display": "Service not covered under the patient's current benefit plan"
+    }
+  ]
+}
