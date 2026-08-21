@@ -48,11 +48,13 @@ def _devices_for(patient_id: str = "", metric: str = "") -> list[dict[str, Any]]
 def telemetry_series(patient_id: str = "", metric: str = "", days: int = 14) -> dict[str, Any]:
     targets = _devices_for(patient_id, metric)
     if not targets:
+        # Metric names are schema and safe to return - they help the model
+        # retry with a valid one. The patient ids they used to be paired with
+        # were not: that turned a miss into a roster of who is monitored.
         return {
             "found": False,
-            "available": [
-                {"patient_id": d["patient_id"], "metric": d["metric"]} for d in store.devices()
-            ],
+            "detail": "no monitored device matches that patient and metric",
+            "available_metrics": sorted({d["metric"] for d in store.devices()}),
         }
 
     window = max(1, min(days, 21))

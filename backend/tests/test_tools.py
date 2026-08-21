@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from onemind.tools import store, tools
@@ -37,20 +39,133 @@ def test_specialists_do_not_share_tools() -> None:
 # -- clinical ---------------------------------------------------------------
 
 
-def test_patient_lookup_by_id_and_mrn() -> None:
-    patient = store.patients()[0]
+def _uniquely_named() -> dict[str, Any]:
+    names = [p["name"] for p in store.patients()]
+    return next(p for p in store.patients() if names.count(p["name"]) == 1)
+
+
+def _name_twins() -> list[dict[str, Any]]:
+    names = [p["name"] for p in store.patients()]
+    shared = next(n for n in names if names.count(n) > 1)
+    return [p for p in store.patients() if p["name"] == shared]
+
+
+def test_corpus_contains_a_name_collision() -> None:
+    """The generator pins this deliberately. If a future regeneration produces
+    six unique names, the ambiguity path stops being exercised by real data and
+    this suite would start passing for the wrong reason."""
+    twins = _name_twins()
+    assert len(twins) == 2
+    assert twins[0]["mrn"] != twins[1]["mrn"]
+    assert twins[0]["birth_date"] != twins[1]["birth_date"]
+
+
+def test_patient_lookup_by_id_mrn_and_name() -> None:
+    """Clinicians ask for people by name, so name resolves like any other key -
+    as long as the name is unambiguous."""
+    patient = _uniquely_named()
     by_id = fhir_search_patient(patient["patient_id"])
     by_mrn = fhir_search_patient(patient["mrn"])
-    assert by_id["found"] and by_mrn["found"]
-    assert by_id["patient_id"] == by_mrn["patient_id"]
+    by_name = fhir_search_patient(patient["name"])
+    assert by_id["found"] and by_mrn["found"] and by_name["found"]
+    assert by_id["patient_id"] == by_mrn["patient_id"] == by_name["patient_id"]
 
 
-def test_unknown_patient_reports_what_exists() -> None:
-    """A specialist that cannot find a record should be able to say what it
-    could have found, rather than inventing one."""
+def test_name_lookup_is_case_insensitive() -> None:
+    patient = _uniquely_named()
+    assert fhir_search_patient(patient["name"].upper())["found"]
+    assert fhir_search_patient(patient["name"].lower())["found"]
+
+
+def test_shared_name_in_the_real_corpus_refuses() -> None:
+    twins = _name_twins()
+    result = fhir_search_patient(twins[0]["name"])
+    assert result["found"] is False and result["ambiguous"] is True
+    assert result["match_count"] == 2
+    assert "medications" not in result
+
+
+def test_birth_date_separates_name_twins() -> None:
+    """The second identifier is what turns a refusal into an answer - the shape
+    FHIR's Patient/$match takes, resolving identity from demographics."""
+    for twin in _name_twins():
+        result = fhir_search_patient(twin["name"], birth_date=twin["birth_date"])
+        assert result["found"] is True
+        assert result["patient_id"] == twin["patient_id"]
+        assert result["mrn"] == twin["mrn"]
+
+
+def test_birth_date_does_not_rescue_a_wrong_one() -> None:
+    twins = _name_twins()
+    result = fhir_search_patient(twins[0]["name"], birth_date="1900-01-01")
+    assert result["found"] is False and result["ambiguous"] is True
+
+
+def test_unique_key_ignores_a_mismatched_birth_date() -> None:
+    """Narrowing applies to ambiguity only. An MRN that already identifies one
+    person should not be second-guessed by a stray demographic."""
+    patient = _uniquely_named()
+    result = fhir_search_patient(patient["mrn"], birth_date="1900-01-01")
+    assert result["found"] is True
+    assert result["patient_id"] == patient["patient_id"]
+
+
+def test_resource_fetch_separates_name_twins_by_birth_date() -> None:
+    twin = _name_twins()[1]
+    result = fhir_get_resource(twin["name"], "medications", birth_date=twin["birth_date"])
+    assert result["found"] is True
+    assert result["patient_id"] == twin["patient_id"]
+
+
+def test_shared_name_refuses_instead_of_picking_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two people can share a name. Answering for whichever record sorted first
+    is a confident answer about the wrong patient - the worst failure here."""
+    a, b = store.patients()[0], store.patients()[1]
+    twins = [{**a}, {**b, "name": a["name"]}]
+    monkeypatch.setattr(store, "patients", lambda: twins)
+
+    result = fhir_search_patient(a["name"])
+    assert result["found"] is False
+    assert result["ambiguous"] is True
+    assert result["match_count"] == 2
+    assert "medications" not in result
+
+    # The unique keys still resolve, and they resolve to different people.
+    assert fhir_search_patient(a["mrn"])["patient_id"] == a["patient_id"]
+    assert fhir_search_patient(b["mrn"])["patient_id"] == b["patient_id"]
+
+
+def test_ambiguous_name_does_not_name_the_candidates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Refusing must not become its own disclosure: 'did you mean MRN-x or
+    MRN-y?' tells the caller two people they never asked about exist."""
+    a, b = store.patients()[0], store.patients()[1]
+    twins = [{**a}, {**b, "name": a["name"]}]
+    monkeypatch.setattr(store, "patients", lambda: twins)
+
+    blob = str(fhir_search_patient(a["name"]))
+    for patient in twins:
+        assert patient["mrn"] not in blob
+        assert patient["patient_id"] not in blob
+
+
+def test_resource_fetch_refuses_a_shared_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    a, b = store.patients()[0], store.patients()[1]
+    twins = [{**a}, {**b, "name": a["name"]}]
+    monkeypatch.setattr(store, "patients", lambda: twins)
+
+    result = fhir_get_resource(a["name"], "medications")
+    assert result["found"] is False and result["ambiguous"] is True
+    assert "items" not in result
+
+
+def test_unknown_patient_does_not_enumerate_the_store() -> None:
+    """A miss must not confirm or deny what else we hold. The old behaviour
+    returned every patient id, and the model recited them into the answer."""
     result = fhir_search_patient("99999")
     assert result["found"] is False
-    assert result["known_patient_ids"]
+    assert "known_patient_ids" not in result
+    known = {p["patient_id"] for p in store.patients()} | {p["name"] for p in store.patients()}
+    assert not any(value in str(result) for value in known)
 
 
 def test_labs_are_newest_first_and_flag_abnormal() -> None:
@@ -74,6 +189,13 @@ def test_claim_lookup_by_id() -> None:
 
 def test_claim_lookup_requires_an_argument() -> None:
     assert claim_lookup()["found"] is False
+
+
+def test_unknown_claim_does_not_sample_the_ledger() -> None:
+    result = claim_lookup(claim_id="CLM-000000")
+    assert result["found"] is False
+    assert "known_claim_ids" not in result
+    assert not any(c["claim_id"] in str(result) for c in store.claims())
 
 
 def test_code_validation_round_trip() -> None:
@@ -143,7 +265,11 @@ def test_series_reports_trend_and_window() -> None:
     assert entry["min"] <= entry["mean"] <= entry["max"]
 
 
-def test_unknown_device_lists_alternatives() -> None:
+def test_unknown_device_lists_metrics_but_not_patients() -> None:
+    """Naming the metrics helps the model retry. Naming who is monitored is a
+    roster, and the model will repeat it into the answer."""
     result = telemetry_series(patient_id="99999")
     assert result["found"] is False
-    assert result["available"]
+    assert result["available_metrics"]
+    monitored = {d["patient_id"] for d in store.devices()}
+    assert not any(pid in str(result) for pid in monitored)

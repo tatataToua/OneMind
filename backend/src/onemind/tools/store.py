@@ -80,12 +80,58 @@ def policies() -> list[dict[str, str]]:
     return docs
 
 
-def find_patient(patient_id: str) -> dict[str, Any] | None:
-    wanted = str(patient_id).strip()
-    for patient in patients():
-        if patient["patient_id"] == wanted or patient["mrn"].lower() == wanted.lower():
-            return patient
-    return None
+def find_patients(key: str) -> list[dict[str, Any]]:
+    """Every patient matching an id, MRN, or full name.
+
+    Name is a first-class lookup key because that is how clinicians actually
+    ask: "what is Samuel Ferreira taking?", not "what is 12345 taking?".
+    Resolving it here is safe - this runs inside the data plane, and the model
+    only ever handled the placeholder. The real name arrives because
+    `rehydrate_args` restored it on the way into the call.
+
+    It returns a list rather than one patient because ids and MRNs are unique
+    but names are not. Two people genuinely can be called Samuel Ferreira, and
+    the caller has to decide what to do about that.
+    """
+    wanted = str(key).strip()
+    folded = wanted.casefold()
+    return [
+        patient
+        for patient in patients()
+        if patient["patient_id"] == wanted
+        or patient["mrn"].casefold() == folded
+        or patient["name"].casefold() == folded
+    ]
+
+
+def resolve_patients(key: str, birth_date: str = "") -> list[dict[str, Any]]:
+    """Matches for `key`, narrowed by a second identifier when one is given.
+
+    This is the shape FHIR's `Patient/$match` operation takes: identity is
+    resolved from a set of demographics, not from one string. The narrowing
+    only ever applies to an ambiguous result - supplying a date of birth is how
+    a caller separates two people who share a name, not an extra hurdle in
+    front of an MRN that was already unique.
+    """
+    matches = find_patients(key)
+    if len(matches) > 1 and birth_date.strip():
+        wanted = birth_date.strip()
+        narrowed = [p for p in matches if p["birth_date"] == wanted]
+        if narrowed:
+            return narrowed
+    return matches
+
+
+def find_patient(key: str) -> dict[str, Any] | None:
+    """The one patient matching `key`, or None if the match is not unique.
+
+    Ambiguity is deliberately indistinguishable from absence here: both mean
+    "you may not proceed". Returning the first of several matches would hand
+    back the wrong person's chart, which is the worst thing this system could
+    do quietly.
+    """
+    matches = find_patients(key)
+    return matches[0] if len(matches) == 1 else None
 
 
 def reset_cache() -> None:

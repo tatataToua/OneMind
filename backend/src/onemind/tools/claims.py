@@ -32,10 +32,12 @@ def claim_lookup(claim_id: str = "", patient_id: str = "") -> dict[str, Any]:
         wanted = claim_id.strip().upper()
         matches = [c for c in rows if c["claim_id"].upper() == wanted]
         if not matches:
+            # No claim inventory in the miss payload: a lookup that fails must
+            # not hand back a sample of the ledger.
             return {
                 "found": False,
                 "claim_id": claim_id,
-                "known_claim_ids": [c["claim_id"] for c in rows][:10],
+                "detail": "no claim matches that id",
             }
         return {"found": True, "count": len(matches), "claims": matches}
 
