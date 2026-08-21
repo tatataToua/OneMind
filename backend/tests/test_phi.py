@@ -58,6 +58,32 @@ def test_mangled_tokens_still_rehydrate(session: PHISession) -> None:
     assert session.rehydrate("the record PHI MRN 1 shows") == "the record MRN-672113 shows"
 
 
+def test_misspelled_token_still_rehydrates(session: PHISession) -> None:
+    """Found by evals/edge_cases.py: qwen3.5 wrote PHI_PANTIENT_1 for
+    PHI_PATIENT_1 - an inserted letter, not a separator change, so stripping
+    separators alone (the fix above) does not catch it. The fuzzy fallback
+    matches on exact digit suffix plus closest spelling."""
+    session.redact("patient 12345")
+    assert session.rehydrate("Patient PHI_PANTIENT_1 is stable") == "Patient 12345 is stable"
+
+
+def test_misspelled_token_does_not_cross_kinds(session: PHISession) -> None:
+    """The fuzzy fallback must not confuse two different placeholders that
+    happen to share a trailing digit."""
+    session.redact("patient 12345 with MRN-672113")
+    assert session.rehydrate("chart PHI_PANTIENT_1, MRN PHI_MRN_1") == (
+        "chart 12345, MRN MRN-672113"
+    )
+
+
+def test_dob_matches_us_slash_format(session: PHISession) -> None:
+    """Found by evals/edge_cases.py: the DOB pattern only recognised the ISO
+    form, so a user-typed "10/22/1979" reached the model untouched."""
+    out = session.redact("DOB on file: 1979-10-22, patient says 10/22/1979")
+    assert "1979-10-22" not in out
+    assert "10/22/1979" not in out
+
+
 def test_tool_arguments_are_rehydrated(session: PHISession) -> None:
     """The core of the trust boundary: tools receive real lookup keys."""
     session.redact("patient 12345")

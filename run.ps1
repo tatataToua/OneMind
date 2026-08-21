@@ -25,7 +25,7 @@ $Model = 'qwen3.5:4b'
 function Invoke-Uv {
     param([string[]]$UvArgs)
     Push-Location $Backend
-    try { & python -m uv @UvArgs; if ($LASTEXITCODE -ne 0) { throw "uv failed: $($UvArgs -join ' ')" } }
+    try { & py -3 -m uv @UvArgs; if ($LASTEXITCODE -ne 0) { throw "uv failed: $($UvArgs -join ' ')" } }
     finally { Pop-Location }
 }
 
@@ -33,7 +33,7 @@ switch ($Task) {
 
     'setup' {
         Write-Host '==> installing uv' -ForegroundColor Cyan
-        & python -m pip install --quiet --disable-pip-version-check uv
+        & py -3 -m pip install --quiet --disable-pip-version-check uv
 
         Write-Host '==> syncing python dependencies (3.12)' -ForegroundColor Cyan
         Invoke-Uv @('python', 'install', '3.12')
@@ -70,7 +70,7 @@ switch ($Task) {
 
         Write-Host '==> starting API on :8080' -ForegroundColor Cyan
         Start-Process -FilePath 'powershell' -ArgumentList @(
-            '-NoExit', '-Command', "Set-Location '$Backend'; python -m uv run uvicorn onemind.api.main:app --host 127.0.0.1 --port 8080 --reload --reload-include *.json"
+            '-NoExit', '-Command', "Set-Location '$Backend'; py -3 -m uv run uvicorn onemind.api.main:app --host 127.0.0.1 --port 8080 --reload --reload-include *.json"
         )
 
         Write-Host '==> warming the model' -ForegroundColor Cyan

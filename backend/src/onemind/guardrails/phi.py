@@ -41,6 +41,7 @@ placeholder into the answer.
 
 from __future__ import annotations
 
+import difflib
 import json
 import re
 from typing import Any
@@ -57,7 +58,13 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("MRN", re.compile(r"\bMRN-\d{4,10}\b", re.IGNORECASE)),
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b")),
     ("PHONE", re.compile(r"\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b")),
-    ("DOB", re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}\b")),
+    # Both ISO (1979-10-22) and US slash/dot (10/22/1979, 10.22.1979) - found
+    # live: a date re-typed as "10/22/1979" reached the model untouched
+    # because the original pattern only recognised the ISO form.
+    ("DOB", re.compile(
+        r"\b(?:(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}"
+        r"|\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)\d{2})\b"
+    )),
 ]
 
 # Bare 4-6 digit run used as a patient identifier. Applied last and only when
@@ -79,6 +86,21 @@ _TOKEN = re.compile(r"\bPHI[_ ]?[A-Z][A-Z_ ]*?[_ ]?\d+\b")
 
 def _normalise(token: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", token.upper())
+
+
+def _closest_token(norm: str, known: list[str]) -> str | None:
+    """Fuzzy fallback for a token the model misspelled outright, e.g.
+    PHI_PANTIENT_1 for PHI_PATIENT_1 - `_normalise` only fixes reformatting
+    (spaces, dashes), not a wrong letter. Digits are far less likely to be
+    mangled than letters, so only candidates with the exact same trailing
+    digit run are considered, then the closest by string similarity wins.
+    """
+    digits = re.search(r"\d+$", norm)
+    if not digits:
+        return None
+    candidates = [k for k in known if k.endswith(digits.group()) and k != norm]
+    best = difflib.get_close_matches(norm, candidates, n=1, cutoff=0.75)
+    return best[0] if best else None
 
 
 class PHISession:
@@ -136,14 +158,20 @@ class PHISession:
         return json.loads(self.redact(json.dumps(payload, default=str)))
 
     def rehydrate(self, text: str) -> str:
-        """Restore original values, tolerating tokens the model reformatted."""
+        """Restore original values, tolerating tokens the model reformatted or
+        outright misspelled."""
         if not text or not self._from_token:
             return text
 
         lookup = {_normalise(t): v for t, v in self._from_token.items()}
+        known = list(lookup)
 
         def restore(match: re.Match[str]) -> str:
-            return lookup.get(_normalise(match.group(0)), match.group(0))
+            norm = _normalise(match.group(0))
+            if norm in lookup:
+                return lookup[norm]
+            closest = _closest_token(norm, known)
+            return lookup[closest] if closest else match.group(0)
 
         return _TOKEN.sub(restore, text)
 
