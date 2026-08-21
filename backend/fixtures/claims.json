@@ -169,7 +169,7 @@
   },
   {
     "claim_id": "CLM-8876",
-    "patient_id": "12456",
+    "patient_id": "12455",
     "date_of_service": "2026-07-11",
     "cpt_code": "95250",
     "cpt_description": "Continuous glucose monitoring, sensor placement and training",

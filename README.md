@@ -66,7 +66,7 @@ ollama pull qwen3.5:4b
 # terminal 1 — API
 cd backend
 uv sync --extra dev
-uv run uvicorn onemind.api.main:app --port 8080
+uv run uvicorn onemind.api.main:app --port 8080 --reload --reload-include '*.json'
 
 # terminal 2 — UI
 cd frontend

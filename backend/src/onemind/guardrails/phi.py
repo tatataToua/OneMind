@@ -48,7 +48,12 @@ from typing import Any
 # Ordered most-specific first. A phone pattern will happily eat an SSN, so SSN
 # must win; likewise MRN before the bare-digit patient id.
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    ("SSN", re.compile(r"\b\d{3}-\d{2}-\d{4}\b")),
+    # Each digit is allowed at most one space/dot/dash before the next, so the
+    # dashed form (541-63-1736) still matches but so does a spelled-out or
+    # re-typed one (541 63 1736, 5 4 1 6 3 1 7 3 6). Found live: a spelled-out
+    # SSN reached the model untouched because the original pattern only
+    # recognised the dashed form.
+    ("SSN", re.compile(r"\b\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d\b")),
     ("MRN", re.compile(r"\bMRN-\d{4,10}\b", re.IGNORECASE)),
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b")),
     ("PHONE", re.compile(r"\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b")),

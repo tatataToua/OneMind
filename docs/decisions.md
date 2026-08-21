@@ -284,3 +284,30 @@ in an assertion.
 One consequence worth noting: `StubProvider` takes a `delay`, because without an
 await point the event loop never interleaves and the concurrency assertion would
 pass or fail on scheduling luck rather than on behaviour.
+
+---
+
+## 17. The SSN pattern tolerates re-typed separators, not just dashes
+
+**Decision.** `_PATTERNS["SSN"]` matches `\d[ .-]?` repeated nine times, so
+`541-63-1736`, `541 63 1736`, and `5 4 1 6 3 1 7 3 6` are all caught, not only
+the dashed form.
+
+**Why — found by `evals/phi_leak.py`, not by inspection.** The original pattern
+was `\d{3}-\d{2}-\d{4}` — correct for the dashed form, and never tested against
+anything else. A live-model adversarial case asked the router to "confirm this
+SSN is on file: 5 4 1 6 3 1 7 3 6"; the spelled-out digits walked straight past
+the regex and reached the model untouched.
+
+The first version of the eval's own leak-detector missed it too — it checked
+for the dashed form and a fully-concatenated digit form, neither of which
+matches space-separated digits either. It was caught by hand-inspecting one
+case rather than trusting a clean "12/12, no leaks" run. The general lesson:
+a green eval only proves what its checks look for, and a checker built against
+the same assumptions as the code it grades will agree with that code's bugs
+instead of catching them.
+
+Same failure family as #5 and #15: the model, or a user prompt, reformats text
+in ways a narrow regex was never asked to survive. Unlike #5, this one is not
+about the model rewriting a placeholder — it is the inbound boundary in #4
+being crossed *before* redaction ever runs.

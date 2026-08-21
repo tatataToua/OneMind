@@ -54,7 +54,7 @@ switch ($Task) {
     }
 
     'api' {
-        Invoke-Uv @('run', 'uvicorn', 'onemind.api.main:app', '--host', '127.0.0.1', '--port', '8080', '--reload')
+        Invoke-Uv @('run', 'uvicorn', 'onemind.api.main:app', '--host', '127.0.0.1', '--port', '8080', '--reload', '--reload-include', '*.json')
     }
 
     'ui' {
@@ -70,7 +70,7 @@ switch ($Task) {
 
         Write-Host '==> starting API on :8080' -ForegroundColor Cyan
         Start-Process -FilePath 'powershell' -ArgumentList @(
-            '-NoExit', '-Command', "Set-Location '$Backend'; python -m uv run uvicorn onemind.api.main:app --host 127.0.0.1 --port 8080"
+            '-NoExit', '-Command', "Set-Location '$Backend'; python -m uv run uvicorn onemind.api.main:app --host 127.0.0.1 --port 8080 --reload --reload-include *.json"
         )
 
         Write-Host '==> warming the model' -ForegroundColor Cyan
