@@ -12,6 +12,32 @@ from . import store
 from .base import obj_schema, tool, tools
 
 
+def _classify_denial(claim: dict[str, Any]) -> dict[str, Any]:
+    """Attach what a denial code means to the claim that carries it.
+
+    The classification lives with the code set, and the code set belongs to
+    this data plane - so the enrichment happens here rather than downstream.
+    Two consumers need it. The specialist sees it and stops guessing whether a
+    denial is a coding problem; `orchestrator/reconcile.py` reads it out of the
+    evidence, which keeps that module reading retrieved records only and never
+    reaching into a store of its own.
+
+    An unclassified code adds no keys at all, so a caller can tell "not a
+    coding denial" from "nothing is known about this code".
+    """
+    code = claim.get("denial_code")
+    if not code:
+        return claim
+    for entry in store.codesets().get("denial_codes", []):
+        if entry["code"].upper() == str(code).upper() and "coding_related" in entry:
+            return {
+                **claim,
+                "denial_category": entry["category"],
+                "denial_coding_related": entry["coding_related"],
+            }
+    return claim
+
+
 @tool(
     tools,
     name="claim_lookup",
@@ -30,7 +56,7 @@ def claim_lookup(claim_id: str = "", patient_id: str = "") -> dict[str, Any]:
     rows = store.claims()
     if claim_id:
         wanted = claim_id.strip().upper()
-        matches = [c for c in rows if c["claim_id"].upper() == wanted]
+        matches = [_classify_denial(c) for c in rows if c["claim_id"].upper() == wanted]
         if not matches:
             # No claim inventory in the miss payload: a lookup that fails must
             # not hand back a sample of the ledger.
@@ -43,7 +69,7 @@ def claim_lookup(claim_id: str = "", patient_id: str = "") -> dict[str, Any]:
 
     if patient_id:
         wanted = str(patient_id).strip()
-        matches = [c for c in rows if c["patient_id"] == wanted]
+        matches = [_classify_denial(c) for c in rows if c["patient_id"] == wanted]
         return {"found": bool(matches), "count": len(matches), "claims": matches}
 
     return {"found": False, "error": "provide either claim_id or patient_id"}

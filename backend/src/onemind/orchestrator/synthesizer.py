@@ -13,6 +13,7 @@ from collections.abc import AsyncIterator, Sequence
 
 from ..agents.base import SpecialistResult
 from ..llm.base import LLMProvider, Message
+from .reconcile import Finding
 
 # Attribution phrasing is given as a rule, not as examples. An earlier version
 # offered samples ("Clinical records show...", "On the billing side...") and the
@@ -27,7 +28,12 @@ Each section below is headed with the name of the specialist that produced it, \
 and each specialist answered from its own data source.
 
 Rules:
-- Use ONLY what the specialists reported. Add no facts of your own.
+- Use ONLY what the specialists reported and the VERIFIED FINDINGS below. Add \
+no facts of your own.
+- VERIFIED FINDINGS were computed directly from the records the specialists \
+retrieved. State them as established fact. Never contradict, hedge, soften or \
+re-derive them, and never attribute them to a specialist. If a finding answers \
+the question, lead with it.
 - When you attribute a statement, name the specialist EXACTLY as it appears in \
 the headings below. Never attribute anything to a specialist that is not listed.
 - Cover every specialist's contribution. Address the parts of the question in \
@@ -41,9 +47,18 @@ clause and move on.
 - Lead with the answer. No preamble, no restating the question, no summary of \
 what you are about to do.
 - Identifiers like PHI_NAME_1 are redaction placeholders. Reuse them verbatim.
-
+{findings}
 SPECIALIST ANSWERS
 {answers}
+"""
+
+# Rendered only when there is something to render. An empty heading invites a
+# 4B model to explain that it has no verified findings, which is noise in an
+# answer that may be perfectly well supported without any.
+_FINDINGS_BLOCK = """
+VERIFIED FINDINGS - computed directly from the retrieved records, not written \
+by a specialist. These are established fact.
+{lines}
 """
 
 
@@ -55,6 +70,20 @@ def _format(results: Sequence[SpecialistResult]) -> str:
     return "\n\n".join(blocks)
 
 
+def _format_findings(findings: Sequence[Finding]) -> str:
+    """Render findings as their own section, never under a specialist heading.
+
+    Attributing a computed comparison to "Clinical" would be false - no
+    specialist could have made it, which is the entire reason the reconciler
+    exists - and this prompt already works hard to stop the model inventing
+    attributions.
+    """
+    if not findings:
+        return ""
+    lines = "\n".join(f"- {f.statement}\n  [{f.provenance}]" for f in findings)
+    return _FINDINGS_BLOCK.format(lines=lines)
+
+
 def collect_citations(results: Sequence[SpecialistResult]) -> list[str]:
     seen: list[str] = []
     for result in results:
@@ -64,15 +93,41 @@ def collect_citations(results: Sequence[SpecialistResult]) -> list[str]:
     return seen
 
 
+def collect_unverified(results: Sequence[SpecialistResult]) -> list[str]:
+    """Every value a specialist asserted but could not support from its tools."""
+    seen: list[str] = []
+    for result in results:
+        for value in result.unverified:
+            if value not in seen:
+                seen.append(value)
+    return seen
+
+
 class Synthesizer:
     def __init__(self, provider: LLMProvider) -> None:
         self.provider = provider
 
     @staticmethod
-    def needs_synthesis(results: Sequence[SpecialistResult]) -> bool:
-        return len([r for r in results if r.answer.strip()]) > 1
+    def needs_synthesis(
+        results: Sequence[SpecialistResult],
+        findings: Sequence[Finding] = (),
+    ) -> bool:
+        """Whether there is genuinely something to reconcile.
 
-    async def stream(self, request: str, results: Sequence[SpecialistResult]) -> AsyncIterator[str]:
+        Findings count. A specialist can retrieve evidence successfully and
+        still return an empty answer - a timeout after its tools ran, a model
+        returning whitespace - and without this the single-answer fast path
+        would pass the other specialist's prose through untouched and drop
+        every computed finding on the floor.
+        """
+        return len([r for r in results if r.answer.strip()]) > 1 or bool(findings)
+
+    async def stream(
+        self,
+        request: str,
+        results: Sequence[SpecialistResult],
+        findings: Sequence[Finding] = (),
+    ) -> AsyncIterator[str]:
         answered = [r for r in results if r.answer.strip()]
 
         if not answered:
@@ -80,7 +135,7 @@ class Synthesizer:
             yield f"I could not complete that request: {errors}"
             return
 
-        if len(answered) == 1:
+        if len(answered) == 1 and not findings:
             # Chunked rather than one blob so the UI renders identically to a
             # real token stream.
             text = answered[0].answer
@@ -89,7 +144,13 @@ class Synthesizer:
             return
 
         messages = [
-            Message(role="system", content=_SYSTEM.format(answers=_format(results))),
+            Message(
+                role="system",
+                content=_SYSTEM.format(
+                    answers=_format(results),
+                    findings=_format_findings(findings),
+                ),
+            ),
             Message(role="user", content=request),
         ]
         async for token in self.provider.stream(messages, temperature=0.2):

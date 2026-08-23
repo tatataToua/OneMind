@@ -35,6 +35,11 @@ calls, no data leaving the machine.
   │   Revenue Cycle claims + ICD-10/CPT           │     plan → call tools
   │   Compliance    policy corpus                 │     → answer from results
   │   Remote Mon.   telemetry time series         │
+  │                                               │   two grounding checks:
+  │   · a lookup key the request never supplied   │     before the call, and
+  │     is dropped, not executed                  │     after the answer
+  │   · a claim the tool results do not support   │
+  │     is flagged on the answer                  │
   └─────────┬─────────────────────────────────────┘
             ▼
   ┌─────────────────────┐
@@ -121,6 +126,7 @@ and some noise.
 | [`docs/company-research.md`](docs/company-research.md) | Why the specialists map to OneData's healthcare line |
 | `backend/src/onemind/orchestrator/router.py` | Boolean actionability instead of a confidence threshold, and why |
 | `backend/src/onemind/guardrails/phi.py` | The trust boundary: redact toward the model, re-hydrate at the tool |
+| `backend/src/onemind/guardrails/grounding.py` | Why a constrained decode still needs checking: shape is not sense |
 | `backend/src/onemind/orchestrator/graph.py` | LangGraph `Send` fan-out, and why synthesis sits outside the graph |
 | `backend/src/onemind/orchestrator/registry.py` | Adding a fifth specialist is one entry |
 | `backend/src/onemind/llm/bedrock.py` | The production path — same protocol, Bedrock instead of Ollama |
@@ -146,8 +152,12 @@ The UI reads `/api/agents`, so its rail updates too. No other file changes.
    rather than a guess.
 4. **PHI redaction** — click the *N PHI redacted* pill to see exactly what the
    model received.
-5. `uv run python ../evals/run_eval.py` — the numbers above, live.
-6. If asked how it scales: add a fifth specialist to the registry.
+5. **Grounding** — ask a hypothetical that names no patient ("act as a newly
+   diagnosed Type 2 diabetes patient…"). The model *will* try to look up a
+   patient it invented from a tool description's example; the trace shows the
+   call blocked rather than a stranger's chart in the answer.
+6. `uv run python ../evals/run_eval.py` — the numbers above, live.
+7. If asked how it scales: add a fifth specialist to the registry.
 
 Expect roughly 4 s for a single-agent answer and 9–14 s for a cross-agent one on
 an RTX 3060 Ti.
@@ -203,6 +213,33 @@ Stated plainly, because a reviewer will find them anyway.
   [decisions.md](docs/decisions.md#14-policy-retrieval-returns-five-sections-not-three).
 - **No persistence.** Every request is stateless; there is no conversation
   memory. Follow-up questions must restate their subject.
+- **Only registered cross-plane joins work.** The reconciler computes the
+  comparisons it has checks for. An unanticipated question spanning two data
+  planes still degrades to "I cannot determine that" — the improvement is that
+  it now degrades for a reason you can point at rather than because nothing in
+  the architecture could ever have joined the evidence.
+- **Diagnosis matching is set membership, not medical necessity.** The check
+  asks whether the billed ICD-10 is on the patient's problem list. A production
+  scrubber asks whether the payer covers that CPT for that diagnosis, which
+  needs LCD/NCD coverage tables the fixtures do not have.
+- **The denial-code classification is a ten-row fixture,** not a maintained
+  CARC/RARC set with effective dates. Production would version it and cite the
+  edition, the way a scrubber cites the NCCI quarter it edited against.
+
+### Windows: Smart App Control
+
+`uv run` cannot work on a machine with Smart App Control enabled. uv launches
+the interpreter through a small trampoline executable it generates locally, and
+Windows blocks binaries it has no reputation for — `os error 4551`. The
+interpreters `uv python install` fetches are affected more deeply: their bundled
+OpenSSL DLLs are blocked too, so `import ssl` fails even when the interpreter
+starts.
+
+`./run.ps1 setup` therefore builds the virtualenv with stock `venv` from a
+signed python.org 3.12 and installs through `uv pip`, so `uv.lock` stays
+authoritative while nothing locally generated has to execute. `./run.ps1 check`
+runs the interpreter and imports `ssl` rather than testing for `.venv` on disk,
+so a blocked toolchain fails there instead of mid-demo.
 
 ---
 

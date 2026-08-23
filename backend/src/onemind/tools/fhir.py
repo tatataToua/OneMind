@@ -139,10 +139,23 @@ def fhir_get_resource(patient_id: str, resource: str, birth_date: str = "") -> d
 
     payload = patient.get(resource, [])
     if resource == "labs":
-        # Newest first, and flag anything above the reference range so the model
-        # does not have to do the comparison itself.
+        # Newest first, and flag whichever side of the reference threshold is
+        # clinically abnormal so the model does not have to do the comparison
+        # itself. Direction matters: low eGFR is the bad direction, not high -
+        # a single "above threshold" rule would flag healthy kidney function as
+        # abnormal and miss the CKD case entirely.
         payload = sorted(payload, key=lambda r: r["effective_date"], reverse=True)
-        payload = [{**row, "abnormal": row["value"] > row["reference_upper"]} for row in payload]
+        payload = [
+            {
+                **row,
+                "abnormal": (
+                    row["value"] < row["reference_threshold"]
+                    if row["reference_direction"] == "below"
+                    else row["value"] > row["reference_threshold"]
+                ),
+            }
+            for row in payload
+        ]
 
     return {
         "found": True,

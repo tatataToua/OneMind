@@ -1,6 +1,6 @@
 # Cross-plane reconciliation
 
-**Status:** approved, not yet implemented
+**Status:** implemented — see §13 for where the build departed from this design
 **Date:** 2026-08-21
 
 ## 1. The problem
@@ -462,3 +462,88 @@ size for non-termination. No demo-set question needs it once §1.1 is fixed.
 Clinical's request.** Keeps agents isolated and lets facts flow, but it makes
 the router responsible for dependency ordering, doubles latency on every
 cross-agent request, and still leaves the comparison itself to a model.
+
+---
+
+## 13. As built: where implementation departed from this design
+
+Five changes, four of them found by running the thing rather than by reading it.
+
+### 13.1 No new fixture file — `codesets.json` already had the table
+
+§6.2 proposed `backend/fixtures/denial_codes.json`. Unnecessary: `codesets.json`
+already carries a `denial_codes` system with all ten codes and their display
+text, and `validate_code` already searches it. Only the classification was
+missing, so `DENIALS` in `generate.py` gained `category` and `coding_related`
+and the existing emit carries them. One fewer component.
+
+### 13.2 The data plane classifies its own denials
+
+§6.2 had the reconciler consult the code set. That would have made it reach for
+reference data of its own, weakening the "reads only what the specialists
+retrieved" property that the whole boundary argument rests on.
+
+Instead `tools/claims.py` attaches `denial_category` and
+`denial_coding_related` to each claim row it returns. The code set belongs to
+the Revenue Cycle data plane, so enrichment belongs there. Two benefits: the
+reconciler stays purely evidence-reading, and the specialist now sees the
+classification too, so it stops guessing whether a denial is a coding problem.
+
+### 13.3 A second false-positive class in `ungrounded_values`
+
+§1.3 assumed both flagged values — `CLM-8849` and `ICD-10` — had one cause. They
+did not. Passing the request fixed the claim id; `ICD-10` still flagged, because
+separator folding only rescues a vocabulary name when the evidence happens to
+contain the field, and a specialist correctly reporting *"this data source holds
+no ICD-10 codes"* has no `icd10_code` in its evidence at all.
+
+Fixed separately with `_VOCABULARIES`, a small set of coding-system names
+excluded from `hard_tokens`. The vocabulary is the noun; the code is the claim.
+Only one is exempt, and `test_a_code_is_still_checked_when_its_vocabulary_is_named`
+holds that line.
+
+### 13.4 Findings are scoped to the records the request named
+
+Not in the design, and the most important thing the live run surfaced.
+
+`claim_lookup` called with a patient id returns *every* claim for that patient,
+so the question about CLM-8972 produced eight correct findings across four
+claims. Handed all eight, the 4B model mixed the claims up and produced an
+answer that both stated the mismatch and claimed no billing codes were
+available — a correct finding set producing a worse answer than none.
+
+`Finding.subject` now names the record, and `reconcile(results, request)` keeps
+only findings for records the request names, falling back to all of them when it
+names none — so *"are any of this patient's claims miscoded"* still returns
+everything. Same principle as identifier grounding: the request sets the scope.
+
+With scoping, the live answer leads with:
+
+> The claim CLM-8972 received denial CO-11 because the billed ICD-10 code E11.9
+> is not on the patient's active problem list, which contains only M17.9 and
+> N18.3; therefore the billed diagnosis does not match.
+
+### 13.5 Five verdicts, not four
+
+`applicable` was added alongside `not_applicable`. §6.2's check asks a yes/no
+classification question, and forcing that into `match`/`mismatch` would have
+made "this *is* a coding denial" read as a code comparison.
+
+### 13.6 A bug worth recording
+
+`_classify_denial` was first inserted between `@tool(...)` and `claim_lookup`,
+so the decorator registered the helper as the tool. Every claim lookup failed
+with `unexpected keyword argument 'claim_id'`. The unit tests passed throughout
+— they call the check functions directly — and only the end-to-end run through
+the real registry caught it. An argument for keeping `test_reconcile.py`'s
+end-to-end section, which exercises the real tools and guardrails with only the
+model stubbed.
+
+### 13.7 Verification
+
+- `135 passed` (`./run.ps1 test`), from 97 before this work
+- `ruff check` and `ruff format --check` clean
+- `tsc -b && vite build` clean
+- `./run.ps1 eval`: 97.1% overall exact match, routing unchanged
+- live runs against `qwen3.5:4b` on both the mismatch and match claims, with
+  `unverified` empty in both — the false positives from §1.3 are gone

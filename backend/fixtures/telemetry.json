@@ -1,674 +1,1178 @@
 [
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 125.3,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 61.3,
     "recorded_at": "2026-07-30T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 127.5,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 72.4,
     "recorded_at": "2026-07-31T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 126.2,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 102.4,
     "recorded_at": "2026-08-01T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 136.8,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 57.8,
     "recorded_at": "2026-08-02T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 133.4,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 80.5,
     "recorded_at": "2026-08-03T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 170.8,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 63.0,
     "recorded_at": "2026-08-04T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 156.1,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 75.6,
     "recorded_at": "2026-08-05T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 123.7,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 75.9,
     "recorded_at": "2026-08-06T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 132.4,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 67.1,
     "recorded_at": "2026-08-07T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 121.1,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 59.3,
     "recorded_at": "2026-08-08T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 163.3,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 61.6,
     "recorded_at": "2026-08-09T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 157.4,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 94.5,
     "recorded_at": "2026-08-10T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 166.7,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 115.7,
     "recorded_at": "2026-08-11T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 162.2,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 60.3,
     "recorded_at": "2026-08-12T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 155.6,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 58.9,
     "recorded_at": "2026-08-13T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 169.9,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 84.2,
     "recorded_at": "2026-08-14T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 121.5,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 64.3,
     "recorded_at": "2026-08-15T08:00:00"
   },
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 156.1,
-    "recorded_at": "2026-08-16T08:00:00"
-  },
-  {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 164.4,
-    "recorded_at": "2026-08-17T08:00:00"
-  },
-  {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 126.8,
-    "recorded_at": "2026-08-18T08:00:00"
-  },
-  {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "value": 152.2,
-    "recorded_at": "2026-08-19T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 86.5,
-    "recorded_at": "2026-07-30T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 97.0,
-    "recorded_at": "2026-07-31T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 95.4,
-    "recorded_at": "2026-08-01T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 86.3,
-    "recorded_at": "2026-08-02T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 86.1,
-    "recorded_at": "2026-08-03T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 92.7,
-    "recorded_at": "2026-08-04T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 89.3,
-    "recorded_at": "2026-08-05T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 90.8,
-    "recorded_at": "2026-08-06T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 97.6,
-    "recorded_at": "2026-08-07T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 97.2,
-    "recorded_at": "2026-08-08T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 91.1,
-    "recorded_at": "2026-08-09T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 93.2,
-    "recorded_at": "2026-08-10T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 88.2,
-    "recorded_at": "2026-08-11T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 88.9,
-    "recorded_at": "2026-08-12T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 92.1,
-    "recorded_at": "2026-08-13T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 90.3,
-    "recorded_at": "2026-08-14T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 92.8,
-    "recorded_at": "2026-08-15T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 94.9,
-    "recorded_at": "2026-08-16T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 90.4,
-    "recorded_at": "2026-08-17T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 96.7,
-    "recorded_at": "2026-08-18T08:00:00"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "value": 92.6,
-    "recorded_at": "2026-08-19T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 95.7,
-    "recorded_at": "2026-07-30T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 65.0,
-    "recorded_at": "2026-07-31T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 52.9,
-    "recorded_at": "2026-08-01T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 93.2,
-    "recorded_at": "2026-08-02T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 84.6,
-    "recorded_at": "2026-08-03T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 88.6,
-    "recorded_at": "2026-08-04T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 63.6,
-    "recorded_at": "2026-08-05T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 71.7,
-    "recorded_at": "2026-08-06T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 78.0,
-    "recorded_at": "2026-08-07T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 106.3,
-    "recorded_at": "2026-08-08T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 82.3,
-    "recorded_at": "2026-08-09T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 64.0,
-    "recorded_at": "2026-08-10T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 102.3,
-    "recorded_at": "2026-08-11T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 114.8,
-    "recorded_at": "2026-08-12T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 99.9,
-    "recorded_at": "2026-08-13T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 52.7,
-    "recorded_at": "2026-08-14T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 100.6,
-    "recorded_at": "2026-08-15T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 84.0,
-    "recorded_at": "2026-08-16T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 70.1,
-    "recorded_at": "2026-08-17T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
-    "patient_id": "12567",
-    "metric": "heart_rate",
-    "unit": "bpm",
-    "value": 81.2,
-    "recorded_at": "2026-08-18T08:00:00"
-  },
-  {
-    "device_id": "DEV-9201",
+    "device_id": "DEV-4047",
     "patient_id": "12567",
     "metric": "heart_rate",
     "unit": "bpm",
     "value": 118,
-    "recorded_at": "2026-08-19T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 212.7,
-    "recorded_at": "2026-07-30T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 126.9,
-    "recorded_at": "2026-07-31T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 263.1,
-    "recorded_at": "2026-08-01T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 134.4,
-    "recorded_at": "2026-08-02T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 105.7,
-    "recorded_at": "2026-08-03T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 297.4,
-    "recorded_at": "2026-08-04T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 76.7,
-    "recorded_at": "2026-08-05T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 197.1,
-    "recorded_at": "2026-08-06T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 239.7,
-    "recorded_at": "2026-08-07T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 125.3,
-    "recorded_at": "2026-08-08T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 129.9,
-    "recorded_at": "2026-08-09T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 145.3,
-    "recorded_at": "2026-08-10T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 70.2,
-    "recorded_at": "2026-08-11T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 193.7,
-    "recorded_at": "2026-08-12T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 148.4,
-    "recorded_at": "2026-08-13T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 97.6,
-    "recorded_at": "2026-08-14T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 269.9,
-    "recorded_at": "2026-08-15T08:00:00"
-  },
-  {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 232.6,
     "recorded_at": "2026-08-16T08:00:00"
   },
   {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 101.6,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 118,
     "recorded_at": "2026-08-17T08:00:00"
   },
   {
-    "device_id": "DEV-4975",
-    "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 292.4,
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 76.6,
     "recorded_at": "2026-08-18T08:00:00"
   },
   {
-    "device_id": "DEV-4975",
+    "device_id": "DEV-4047",
+    "patient_id": "12567",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 110.0,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
     "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "value": 196.2,
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 147.4,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 165.2,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 138.5,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 122.0,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 148.5,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 127.7,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 167.9,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 137.8,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 168.6,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 123.4,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 123.6,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 142.1,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 162.8,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 141.8,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 124.9,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 137.6,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 124.2,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 137.1,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 170.0,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 168.4,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-8770",
+    "patient_id": "12678",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 154.0,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 117.2,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 66.5,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 92.0,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 106.2,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 74.4,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 116.2,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 62.5,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 108.8,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 112.8,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 84.5,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 116.5,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 93.0,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 115.9,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 110.7,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 93.0,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 70.7,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 73.4,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 64.8,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 62.8,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 95.4,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 54.4,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 115.7,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 83.8,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 59.3,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 78.8,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 62.2,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 77.8,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 101.7,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 109.2,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 55.3,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 79.2,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 66.7,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 108.8,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 57.0,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 69.7,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 92.3,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 102.3,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 105.9,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 113.8,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 70.6,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 104.6,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 65.7,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 136.8,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 129.1,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 138.4,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 168.9,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 167.4,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 119.9,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 163.6,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 168.2,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 165.1,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 156.0,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 158.8,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 133.5,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 167.8,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 168.0,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 148.9,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 129.3,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 149.5,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 153.0,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 160.7,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 146.9,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "value": 129.2,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 97.0,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 95.0,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 98.2,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 89.6,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 97.8,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 96.9,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 90.0,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 97.9,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 98.7,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 93.7,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 96.3,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 97.3,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 86.3,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 95.5,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 92.4,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 96.2,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 96.3,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 90.7,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 88.7,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 86,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "value": 86,
+    "recorded_at": "2026-08-19T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 72.7,
+    "recorded_at": "2026-07-30T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 94.1,
+    "recorded_at": "2026-07-31T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 113.9,
+    "recorded_at": "2026-08-01T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 75.8,
+    "recorded_at": "2026-08-02T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 58.1,
+    "recorded_at": "2026-08-03T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 108.3,
+    "recorded_at": "2026-08-04T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 106.5,
+    "recorded_at": "2026-08-05T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 114.5,
+    "recorded_at": "2026-08-06T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 101.1,
+    "recorded_at": "2026-08-07T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 112.7,
+    "recorded_at": "2026-08-08T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 100.0,
+    "recorded_at": "2026-08-09T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 111.4,
+    "recorded_at": "2026-08-10T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 66.0,
+    "recorded_at": "2026-08-11T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 59.7,
+    "recorded_at": "2026-08-12T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 103.3,
+    "recorded_at": "2026-08-13T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 112.2,
+    "recorded_at": "2026-08-14T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 62.4,
+    "recorded_at": "2026-08-15T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 118,
+    "recorded_at": "2026-08-16T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 100.9,
+    "recorded_at": "2026-08-17T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 102.5,
+    "recorded_at": "2026-08-18T08:00:00"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "value": 114.9,
     "recorded_at": "2026-08-19T08:00:00"
   }
 ]

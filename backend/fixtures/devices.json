@@ -1,22 +1,6 @@
 [
   {
-    "device_id": "DEV-2012",
-    "patient_id": "12345",
-    "metric": "blood_pressure_systolic",
-    "unit": "mmHg",
-    "alert_threshold": 140,
-    "alert_direction": "above"
-  },
-  {
-    "device_id": "DEV-2654",
-    "patient_id": "12456",
-    "metric": "spo2",
-    "unit": "%",
-    "alert_threshold": 92,
-    "alert_direction": "below"
-  },
-  {
-    "device_id": "DEV-9201",
+    "device_id": "DEV-4047",
     "patient_id": "12567",
     "metric": "heart_rate",
     "unit": "bpm",
@@ -24,11 +8,51 @@
     "alert_direction": "above"
   },
   {
-    "device_id": "DEV-4975",
+    "device_id": "DEV-8770",
     "patient_id": "12678",
-    "metric": "blood_glucose",
-    "unit": "mg/dL",
-    "alert_threshold": 180,
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "alert_threshold": 140,
+    "alert_direction": "above"
+  },
+  {
+    "device_id": "DEV-3431",
+    "patient_id": "12789",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "alert_threshold": 100,
+    "alert_direction": "above"
+  },
+  {
+    "device_id": "DEV-8303",
+    "patient_id": "13233",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "alert_threshold": 100,
+    "alert_direction": "above"
+  },
+  {
+    "device_id": "DEV-1306",
+    "patient_id": "13344",
+    "metric": "blood_pressure_systolic",
+    "unit": "mmHg",
+    "alert_threshold": 140,
+    "alert_direction": "above"
+  },
+  {
+    "device_id": "DEV-1398",
+    "patient_id": "13788",
+    "metric": "spo2",
+    "unit": "%",
+    "alert_threshold": 92,
+    "alert_direction": "below"
+  },
+  {
+    "device_id": "DEV-3538",
+    "patient_id": "14010",
+    "metric": "heart_rate",
+    "unit": "bpm",
+    "alert_threshold": 100,
     "alert_direction": "above"
   }
 ]

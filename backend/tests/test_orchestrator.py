@@ -112,7 +112,11 @@ async def test_clarifying_question_short_circuits_dispatch(make_orchestrator) ->
 async def test_single_agent_dispatch_runs_its_tool(make_orchestrator) -> None:
     provider = StubProvider(
         agents=["clinical"],
-        plans={"clinical": [{"tool": "fhir_search_patient", "arguments": {"patient_id": "12345"}}]},
+        plans={
+            "clinical": [
+                {"tool": "fhir_search_patient", "arguments": {"patient_id": "PHI_PATIENT_1"}}
+            ]
+        },
         answer="Metformin 500 mg",
     )
     trace = Trace()
@@ -127,13 +131,17 @@ async def test_fan_out_runs_specialists_concurrently(make_orchestrator) -> None:
     provider = StubProvider(
         agents=["clinical", "revenue_cycle"],
         plans={
-            "clinical": [{"tool": "fhir_search_patient", "arguments": {"patient_id": "12345"}}],
+            "clinical": [
+                {"tool": "fhir_search_patient", "arguments": {"patient_id": "PHI_PATIENT_1"}}
+            ],
             "revenue_cycle": [{"tool": "denial_summary", "arguments": {}}],
         },
         delay=0.05,
     )
     trace = Trace()
-    outcome = await make_orchestrator(provider).run("both please", trace)
+    outcome = await make_orchestrator(provider).run(
+        "What is patient 12345 taking, and what is our denial rate?", trace
+    )
 
     assert sorted(outcome["agents"]) == ["clinical", "revenue_cycle"]
 
@@ -149,11 +157,15 @@ async def test_results_follow_router_order_not_completion_order(
     provider = StubProvider(
         agents=["revenue_cycle", "clinical"],
         plans={
-            "clinical": [{"tool": "fhir_search_patient", "arguments": {"patient_id": "12345"}}],
+            "clinical": [
+                {"tool": "fhir_search_patient", "arguments": {"patient_id": "PHI_PATIENT_1"}}
+            ],
             "revenue_cycle": [{"tool": "denial_summary", "arguments": {}}],
         },
     )
-    outcome = await make_orchestrator(provider).run("both please")
+    outcome = await make_orchestrator(provider).run(
+        "What is patient 12345 taking, and what is our denial rate?"
+    )
     assert outcome["agents"] == ["revenue_cycle", "clinical"]
 
 
@@ -220,7 +232,11 @@ async def test_a_failing_specialist_does_not_sink_the_request(
 async def test_trace_covers_the_whole_pipeline(make_orchestrator) -> None:
     provider = StubProvider(
         agents=["clinical"],
-        plans={"clinical": [{"tool": "fhir_search_patient", "arguments": {"patient_id": "12345"}}]},
+        plans={
+            "clinical": [
+                {"tool": "fhir_search_patient", "arguments": {"patient_id": "PHI_PATIENT_1"}}
+            ]
+        },
     )
     trace = Trace()
     await make_orchestrator(provider).run("What is patient 12345 taking?", trace)
@@ -231,6 +247,7 @@ async def test_trace_covers_the_whole_pipeline(make_orchestrator) -> None:
         SpanKind.ROUTE,
         SpanKind.AGENT,
         SpanKind.TOOL,
+        SpanKind.RECONCILE,
         SpanKind.SYNTHESIZE,
     }
     assert all(span.ended_at is not None for span in trace.spans())

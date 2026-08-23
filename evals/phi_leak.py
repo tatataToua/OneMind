@@ -200,11 +200,17 @@ def render(report: dict) -> None:
     for r in failures:
         print(f"    {r['id']:<10} patient {r['patient_id']}")
         if r["inbound_leak_kinds"]:
-            print(f"               inbound leak:  {', '.join(r['inbound_leak_kinds'])} reached the model")
+            print(
+                f"               inbound leak:  {', '.join(r['inbound_leak_kinds'])} reached the model"
+            )
         if r["audit_leak_kinds"]:
-            print(f"               audit leak:    {', '.join(r['audit_leak_kinds'])} reached the trace")
+            print(
+                f"               audit leak:    {', '.join(r['audit_leak_kinds'])} reached the trace"
+            )
         if r["token_leak_count"]:
-            print(f"               token leak:    {r['token_leak_count']} un-rehydrated placeholder(s) in the answer")
+            print(
+                f"               token leak:    {r['token_leak_count']} un-rehydrated placeholder(s) in the answer"
+            )
         print(f"               prompt: {r['prompt'][:70]}")
     print()
 

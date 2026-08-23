@@ -311,3 +311,182 @@ Same failure family as #5 and #15: the model, or a user prompt, reformats text
 in ways a narrow regex was never asked to survive. Unlike #5, this one is not
 about the model rewriting a placeholder — it is the inbound boundary in #4
 being crossed *before* redaction ever runs.
+
+---
+
+## 18. An identifier the request never supplied is not a lookup
+
+**Decision.** Before a tool runs, every argument that selects *whose* record
+comes back — `*_id`, `mrn`, `birth_date` — must trace back to the request. It
+qualifies if `PHISession.rehydrate` changes it (so it was a placeholder this
+request issued) or if the request contains it verbatim (how claim, device and
+encounter ids, which are deliberately never redacted per #4, arrive). Anything
+else, and the whole call is dropped and logged as a guardrail span.
+
+**Why — found live, not by inspection.** Asked a hypothetical that named nobody
+("act as an anxious newly diagnosed Type 2 diabetes patient…"), the Clinical
+specialist called `fhir_search_patient(patient_id="12345")` and answered with a
+real patient's chronic kidney disease diagnosis. `12345` is not a coincidence:
+it is the sample value in `fhir_search_patient`'s own parameter description. The
+model copied the example — the same behaviour #11 documents in the synthesiser,
+where offered phrasings were reproduced verbatim regardless of fit. Small models
+copy what they are shown.
+
+The instruction "never invent an identifier" was already in `_PLAN_SYSTEM` and
+did not hold. That is the point: this is enforced in Python, at the data plane,
+where it cannot be talked out of.
+
+It is the same lesson as #2 and the router's empty-roster normalisation —
+**constrained decoding guarantees shape, never sense** — extended from the
+router to tool arguments. The consequence here is worse. A malformed argument errors
+loudly; a well-formed wrong one *succeeds*, and returns a real person's record
+in answer to a question that never named them.
+
+The whole call is dropped rather than the offending argument, because those
+arguments are what scope the lookup: stripping one either fails on a missing
+required argument or widens into an unscoped query over the store.
+
+Re-running the original prompt against the live model afterwards: three
+ungrounded calls attempted, three blocked, zero PHI in the answer. Two of the
+three had also invented a `birth_date`, which is why the check covers the
+narrowing identifier from #4 and not just the primary key.
+
+---
+
+## 19. Claims are checked against the evidence, but the answer still ships
+
+**Decision.** After a specialist writes its answer, values in the prose that the
+tool results do not contain are collected into `SpecialistResult.unverified`,
+recorded as a guardrail span, and surfaced in the UI. The answer is **not**
+suppressed or retried.
+
+**Why.** #18 stops a lookup the request did not justify. This is the independent
+failure where the *right* record was fetched and the model then asserted
+something it does not say: handed a chart reading `1979-10-22`, the model wrote
+`1980-06-15`. Note it never saw a real date — `redact_json` had replaced it with
+`PHI_DOB_1` — so anything date-shaped in that answer was invented outright.
+
+What is checked is chosen entirely by the false-positive rate, because rewriting
+is what a language model is *for* and most of it is legitimate: `318.38` becoming
+"about $318" is desirable, not a fabrication. So bare numbers are never checked.
+Only values with a canonical form that must survive rewriting are — codes,
+record ids, placeholders, and dates, the last normalised first, since
+reformatting a date is fine and changing one is not.
+
+Comparison folds separators away (`ICD-10` against `icd10_code`) for the same
+reason #5 tolerates mangled tokens. Without that fold, the first live run
+reported the *name of a coding standard* as a fabrication. A flag nobody
+believes is worse than no flag.
+
+**Why it ships anyway.** Suppression would let one false positive delete a
+correct answer, and this check is heuristic by construction. A system that says
+which of its own sentences it cannot vouch for is more useful than one that
+silently drops them — and it is the honest UI, which is the same argument as
+showing the redacted request rather than merely promising redaction happened.
+
+**Why this is not the critic loop #6 rejected.** A critic asks a second model
+whether the first did well, which at 4B is a coin flip. This asks a string
+whether it occurs in another string. It is deterministic, it names the specific
+offending values instead of returning a verdict, and it cannot hallucinate an
+objection.
+
+**The guardrail leaked PHI — found by `evals/edge_cases.py`.** The first version
+wrote the flagged values straight into the trace, on the reasoning that both
+inputs are pre-re-hydration and therefore carry no identifiers. That reasoning
+is exactly backwards, and the eval found it in one run. `edge-11` spells a phone
+number out in words, which walks past the PHONE pattern in #17's family, so the
+model receives it intact; the model re-typed it as `555-493-1882`; nothing in
+the tool results contained it, so this guard flagged it — **and published a real
+phone number to the audit log**, violating the rule in
+`access-control-and-audit.md` that #4 and the trace exist to satisfy.
+
+The general shape is worth keeping: a value flagged as *unsupported by the
+evidence* is, almost by definition, the likeliest thing in the answer to be
+un-redacted PHI. A guard's own output needs the same boundary treatment as the
+data it guards. Findings now pass through `session.redact` on the way into the
+trace, which masks anything PHI-shaped while leaving codes and identifiers —
+the diagnostically useful part — intact.
+
+Same lesson as #17: a green run only proves what the checks look for, and this
+one was caught because an eval written for a *different* guard happened to
+inspect the whole trace.
+
+**Known limit.** It covers specialist answers, where the tool results exist to
+check against. The synthesiser merges two answers with a second model call that
+could introduce its own claims; checking that would mean buffering the token
+stream, which costs the streaming UI for a narrower failure. Not done.
+
+---
+
+## 20. Cross-plane comparisons are computed by code, not by the model
+
+**Decision.** A `reconcile` node runs after fan-in and computes the comparisons
+that span two data planes. `Finding.statement` is a format string filled from
+tool output, and the synthesiser is instructed to state findings as fact rather
+than re-derive them.
+
+**Why — this was a correction, and a bad one.** Asked *"claim CLM-8849 for
+patient 12345 was denied, check their diagnosis history and tell me whether the
+billed code matches"*, the system answered that it could not determine the
+match. Both halves had been retrieved:
+
+| Specialist | Retrieved |
+|---|---|
+| Clinical | patient 12345, conditions `[N18.3]` |
+| Revenue Cycle | CLM-8849, `icd10_code: N18.3` |
+
+The codes matched. Every component behaved exactly as designed — each
+specialist correctly reported the limits of its own data plane, and the
+synthesiser is correctly forbidden from adding facts — and the composition of
+two accurate refusals was a wrong answer. The design had no place for a
+comparison, so nothing could make one.
+
+**Why not just show the synthesiser the raw tool results.** Two lines of change,
+and it was the first thing considered. It asks a 4B model to perform the join,
+which is precisely the fabrication risk the rest of the system exists to
+prevent, and it makes the answer non-reproducible. The comparison is the one
+part of this answer that must not be generated. Rejected.
+
+**Why not an open plan-act-observe loop.** Already rejected in #3 for
+non-termination at this model size, and nothing in the demo set needs it once
+the join exists.
+
+**What this borrows from real systems.** Claim scrubbers do not ask a model
+whether a diagnosis supports a procedure. Medical-necessity and bundling edits
+are table lookups against published rule sets that cite a rule ID and an
+effective date, because the result has to survive a payer appeal months later.
+Where those products use models at all, it is to draft the appeal letter after
+a deterministic engine has decided. Same division of labour here: code decides,
+the model explains.
+
+**Boundary.** The reconciler sits *above* the data planes and holds no tools. It
+reads only results the specialists already legitimately retrieved, so Clinical
+still cannot reach the ledger and Revenue Cycle still cannot read a chart. The
+isolation in #1 is unchanged; what changed is that something is now allowed to
+look at two authorised results at once. Every check that spans two
+patient-scoped records verifies the join key first — comparing one person's
+claim against another's chart is the worst output this component could produce,
+and an ambiguous name match upstream is exactly how it would happen.
+
+**Cost.** Only registered joins work, the classification table is a ten-row
+fixture rather than a maintained CARC set, and the check asks set membership
+against the problem list rather than payer coverage. All three are in the
+README's known limits.
+
+**Two guardrail defects surfaced while tracing this**, both fixed here because
+both were visible in the same broken answer:
+
+- `_is_identifier` covered `*_id`, `mrn` and `birth_date`, so `validate_code`
+  ran on **E11.9** — the sample value in that tool's own parameter description.
+  The same failure #18 exists to prevent, through an argument the predicate did
+  not classify. `_is_coded_value` is a sibling predicate rather than four more
+  entries in the first: a fabricated code does not open the wrong chart, it
+  makes a confident statement about the wrong procedure, and the two rationales
+  should not be merged.
+- `ungrounded_values` never saw the request, so a specialist correctly saying
+  *"I have no data on CLM-8849"* had the user's own claim id reported back as a
+  fabrication. `ICD-10` was flagged in the same answer for a different reason —
+  a vocabulary's name is not a value drawn from a record. Both now pass. The
+  first relaxation is real and deliberate: an identifier the request names is
+  no longer checked, because this guard reports what the *model* invented, and
+  a value the user typed is not that.

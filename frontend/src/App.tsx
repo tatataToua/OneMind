@@ -16,7 +16,19 @@ const KIND_LABEL: Record<string, string> = {
   route: "router",
   agent: "agent",
   tool: "tool",
+  reconcile: "reconcile",
   synthesize: "synthesis",
+};
+
+// A finding's verdict decides how it reads, not just how it looks: "mismatch"
+// is a problem the user must act on, "match" is a clean result, and the two
+// inconclusive verdicts must never be mistaken for either.
+const VERDICT_LABEL: Record<string, string> = {
+  match: "match",
+  mismatch: "mismatch",
+  applicable: "applies",
+  not_applicable: "not applicable",
+  insufficient_evidence: "not compared",
 };
 
 export default function App() {
@@ -232,6 +244,16 @@ export default function App() {
                         {outcome.phi_redactions} PHI redacted
                       </button>
                     )}
+                    {outcome.findings?.length > 0 && (
+                      <span className="pill verified">
+                        {outcome.findings.length} verified
+                      </span>
+                    )}
+                    {outcome.unverified?.length > 0 && (
+                      <span className="pill unverified">
+                        {outcome.unverified.length} unverified
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -247,6 +269,34 @@ export default function App() {
               <div className="answer-body">
                 {answer || <span className="cursor" />}
               </div>
+
+              {outcome && outcome.findings?.length > 0 && (
+                <div className="findings">
+                  <strong>Computed from the retrieved records:</strong>
+                  <ul>
+                    {outcome.findings.map((finding) => (
+                      <li key={`${finding.check}:${finding.provenance}`}>
+                        <span className={`verdict ${finding.verdict}`}>
+                          {VERDICT_LABEL[finding.verdict] ?? finding.verdict}
+                        </span>
+                        <span className="finding-statement">
+                          {finding.statement}
+                        </span>
+                        <code className="provenance">{finding.provenance}</code>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {outcome && outcome.unverified?.length > 0 && (
+                <p className="unverified-note">
+                  <strong>Not supported by the retrieved records:</strong>{" "}
+                  {outcome.unverified.map((value) => (
+                    <code key={value}>{value}</code>
+                  ))}
+                </p>
+              )}
 
               {outcome?.rationale && (
                 <p className="rationale">

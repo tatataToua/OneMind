@@ -26,6 +26,7 @@ class SpanKind(StrEnum):
     ROUTE = "route"
     AGENT = "agent"
     TOOL = "tool"
+    RECONCILE = "reconcile"
     SYNTHESIZE = "synthesize"
 
 

@@ -61,10 +61,13 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # Both ISO (1979-10-22) and US slash/dot (10/22/1979, 10.22.1979) - found
     # live: a date re-typed as "10/22/1979" reached the model untouched
     # because the original pattern only recognised the ISO form.
-    ("DOB", re.compile(
-        r"\b(?:(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}"
-        r"|\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)\d{2})\b"
-    )),
+    (
+        "DOB",
+        re.compile(
+            r"\b(?:(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}"
+            r"|\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)\d{2})\b"
+        ),
+    ),
 ]
 
 # Bare 4-6 digit run used as a patient identifier. Applied last and only when

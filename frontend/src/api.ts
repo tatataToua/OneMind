@@ -3,7 +3,26 @@ export type SpanKind =
   | "route"
   | "agent"
   | "tool"
+  | "reconcile"
   | "synthesize";
+
+/**
+ * A comparison computed from the records the specialists retrieved, rather
+ * than written by the model. Deterministic: the same claim and problem list
+ * always produce the same statement.
+ */
+export interface Finding {
+  check: string;
+  verdict:
+    | "match"
+    | "mismatch"
+    | "applicable"
+    | "not_applicable"
+    | "insufficient_evidence";
+  statement: string;
+  compared: Record<string, string>;
+  provenance: string;
+}
 
 export interface Span {
   span_id: string;
@@ -21,6 +40,10 @@ export interface Outcome {
   answer: string;
   agents: string[];
   citations: string[];
+  /** Values the answer asserts that the tool results do not support. */
+  unverified: string[];
+  /** Cross-plane comparisons computed after fan-in. See `reconcile.py`. */
+  findings: Finding[];
   clarifying_question: string;
   is_actionable: boolean;
   rationale: string;

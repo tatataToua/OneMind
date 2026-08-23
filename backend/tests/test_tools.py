@@ -174,7 +174,12 @@ def test_labs_are_newest_first_and_flag_abnormal() -> None:
     dates = [row["effective_date"] for row in result["items"]]
     assert dates == sorted(dates, reverse=True)
     for row in result["items"]:
-        assert row["abnormal"] == (row["value"] > row["reference_upper"])
+        expected = (
+            row["value"] < row["reference_threshold"]
+            if row["reference_direction"] == "below"
+            else row["value"] > row["reference_threshold"]
+        )
+        assert row["abnormal"] == expected
 
 
 # -- revenue cycle ----------------------------------------------------------

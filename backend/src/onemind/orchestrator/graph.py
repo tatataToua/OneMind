@@ -1,6 +1,6 @@
 """The orchestration graph.
 
-    redact -> route -+-> [specialist] --+-> END
+    redact -> route -+-> [specialist] --+-> reconcile -> END
                      |   [specialist]   |     (fan-in)
                      +-> END (clarify)
 
@@ -9,6 +9,11 @@ concurrent node invocation and their results merge through an `operator.add`
 reducer. That matters beyond tidiness: the trace timeline shows overlapping
 agent spans, which is the visible evidence that this is parallel dispatch rather
 than a loop.
+
+`reconcile` runs once after fan-in and computes the comparisons that span two
+data planes - the ones no single specialist can make, because each sees only its
+own source. It holds no tools and reads only what the specialists already
+retrieved. See `reconcile.py`.
 
 Synthesis deliberately sits outside the graph. The graph's job is deciding and
 gathering - both discrete state transitions. Streaming the final answer to the
@@ -31,10 +36,11 @@ from ..config import settings
 from ..guardrails.phi import PHIRedactor, PHISession
 from ..llm.base import LLMProvider
 from ..observability.trace import SpanKind, Trace
+from .reconcile import Finding, reconcile
 from .registry import SpecialistRegistry
 from .registry import registry as default_registry
 from .router import Router, RoutingDecision
-from .synthesizer import Synthesizer, collect_citations
+from .synthesizer import Synthesizer, collect_citations, collect_unverified
 
 
 class OrchestratorState(TypedDict, total=False):
@@ -42,6 +48,7 @@ class OrchestratorState(TypedDict, total=False):
     redacted: str
     decision: RoutingDecision
     results: Annotated[list[SpecialistResult], operator.add]
+    findings: list[Finding]
 
 
 class SpecialistTask(TypedDict):
@@ -101,15 +108,42 @@ def build_graph(
             result = await agent.run(task["redacted"], trace, session)
         return {"results": [result]}
 
+    async def reconcile_node(state: OrchestratorState) -> dict[str, Any]:
+        """Compute the comparisons no single specialist could make.
+
+        Runs once, after every `Send` branch has completed. Deliberately inside
+        the graph rather than alongside synthesis in `Orchestrator.stream`: the
+        graph decides and gathers, and reconciling is gathering. It also earns
+        a span this way, and an audit reader needs to see the comparison happen.
+
+        A failing check must not sink a request that the specialists already
+        answered, so the whole pass is caught and recorded rather than raised.
+        """
+        span = trace.start(SpanKind.RECONCILE, "Reconciliation")
+        try:
+            findings = reconcile(state.get("results", []), state.get("redacted", ""))
+        except Exception as exc:  # noqa: BLE001 - a bad check is not a failed request
+            trace.fail(span, exc)
+            return {"findings": []}
+
+        trace.end(
+            span,
+            checks=len(findings),
+            verdicts=[f.verdict for f in findings],
+        )
+        return {"findings": findings}
+
     builder = StateGraph(OrchestratorState)
     builder.add_node("redact", redact_node)
     builder.add_node("route", route_node)
     builder.add_node("specialist", specialist_node)
+    builder.add_node("reconcile", reconcile_node)
 
     builder.add_edge(START, "redact")
     builder.add_edge("redact", "route")
     builder.add_conditional_edges("route", fan_out, ["specialist", END])
-    builder.add_edge("specialist", END)
+    builder.add_edge("specialist", "reconcile")
+    builder.add_edge("reconcile", END)
 
     return builder.compile()
 
@@ -119,6 +153,8 @@ class OrchestratorOutcome(TypedDict):
     answer: str
     agents: list[str]
     citations: list[str]
+    unverified: list[str]
+    findings: list[dict[str, Any]]
     clarifying_question: str
     is_actionable: bool
     rationale: str
@@ -181,6 +217,7 @@ class Orchestrator:
         state: OrchestratorState = await task
         decision: RoutingDecision = state.get("decision")  # type: ignore[assignment]
         results: list[SpecialistResult] = state.get("results", [])
+        findings: list[Finding] = state.get("findings", [])
 
         # Preserve the router's ordering; Send fan-in returns completion order.
         if decision and decision.agents:
@@ -193,15 +230,17 @@ class Orchestrator:
             chunks.append(text)
             yield {"event": "token", "data": {"text": text}}
         else:
+            synthesised = Synthesizer.needs_synthesis(results, findings)
             span = trace.start(
                 SpanKind.SYNTHESIZE,
-                "Synthesis" if Synthesizer.needs_synthesis(results) else "Direct answer",
-                synthesised=Synthesizer.needs_synthesis(results),
+                "Synthesis" if synthesised else "Direct answer",
+                synthesised=synthesised,
                 agent_count=len(results),
+                findings=len(findings),
             )
             for event in trace.pending():
                 yield event
-            async for token in self.synthesizer.stream(state["redacted"], results):
+            async for token in self.synthesizer.stream(state["redacted"], results, findings):
                 chunks.append(token)
                 yield {"event": "token", "data": {"text": token}}
             trace.end(span, answer_chars=sum(len(c) for c in chunks))
@@ -213,6 +252,17 @@ class Orchestrator:
             SpanKind.GUARDRAIL, "PHI re-hydration (outbound)", tokens=session.count
         )
         answer = session.rehydrate(redacted_answer)
+        # Findings are computed from redacted tool output, so a statement can
+        # carry a placeholder wherever it names a patient. They leave through
+        # the same door as the answer.
+        restored_findings = [
+            {
+                **finding.model_dump(),
+                "statement": session.rehydrate(finding.statement),
+                "provenance": session.rehydrate(finding.provenance),
+            }
+            for finding in findings
+        ]
         trace.end(restore, restored=session.count)
         for event in trace.pending():
             yield event
@@ -225,6 +275,8 @@ class Orchestrator:
                 answer=answer,
                 agents=[r.agent for r in results],
                 citations=collect_citations(results),
+                unverified=collect_unverified(results),
+                findings=restored_findings,
                 clarifying_question=decision.clarifying_question if decision else "",
                 is_actionable=bool(decision and decision.is_actionable),
                 rationale=decision.rationale if decision else "",

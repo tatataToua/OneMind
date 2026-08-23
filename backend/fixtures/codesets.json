@@ -19,16 +19,56 @@
     {
       "code": "I48.91",
       "display": "Unspecified atrial fibrillation"
+    },
+    {
+      "code": "E78.5",
+      "display": "Hyperlipidemia, unspecified"
+    },
+    {
+      "code": "E66.9",
+      "display": "Obesity, unspecified"
+    },
+    {
+      "code": "J45.909",
+      "display": "Unspecified asthma, uncomplicated"
+    },
+    {
+      "code": "K21.9",
+      "display": "Gastro-esophageal reflux disease without esophagitis"
+    },
+    {
+      "code": "E03.9",
+      "display": "Hypothyroidism, unspecified"
+    },
+    {
+      "code": "I50.32",
+      "display": "Chronic diastolic (congestive) heart failure"
+    },
+    {
+      "code": "M17.9",
+      "display": "Osteoarthritis of knee, unspecified"
     }
   ],
   "cpt": [
+    {
+      "code": "99213",
+      "display": "Office visit, established patient, low complexity"
+    },
     {
       "code": "99214",
       "display": "Office visit, established patient, moderate complexity"
     },
     {
+      "code": "99215",
+      "display": "Office visit, established patient, high complexity"
+    },
+    {
       "code": "95250",
       "display": "Continuous glucose monitoring, sensor placement and training"
+    },
+    {
+      "code": "83036",
+      "display": "Hemoglobin A1c"
     },
     {
       "code": "E0784",
@@ -39,30 +79,98 @@
       "display": "Electrocardiogram, routine ECG with interpretation"
     },
     {
+      "code": "94060",
+      "display": "Bronchodilator responsiveness, spirometry"
+    },
+    {
+      "code": "71046",
+      "display": "Radiologic exam, chest, 2 views"
+    },
+    {
+      "code": "E0470",
+      "display": "Respiratory assist device, bilevel, without backup rate"
+    },
+    {
+      "code": "80053",
+      "display": "Comprehensive metabolic panel"
+    },
+    {
+      "code": "85025",
+      "display": "Complete blood count, automated"
+    },
+    {
       "code": "99457",
       "display": "Remote physiologic monitoring treatment management, first 20 minutes"
+    },
+    {
+      "code": "99490",
+      "display": "Chronic care management, first 20 minutes"
+    },
+    {
+      "code": "G0438",
+      "display": "Annual wellness visit, initial"
     }
   ],
   "denial_codes": [
     {
       "code": "CO-197",
-      "display": "Precertification/authorization absent"
+      "display": "Precertification/authorization absent",
+      "category": "authorization",
+      "coding_related": false
     },
     {
       "code": "CO-16",
-      "display": "Claim lacks information needed for adjudication"
+      "display": "Claim lacks information needed for adjudication",
+      "category": "submission",
+      "coding_related": false
     },
     {
       "code": "CO-11",
-      "display": "Diagnosis inconsistent with the procedure"
+      "display": "Diagnosis inconsistent with the procedure",
+      "category": "coding",
+      "coding_related": true
     },
     {
       "code": "CO-29",
-      "display": "Time limit for filing has expired"
+      "display": "Time limit for filing has expired",
+      "category": "timely_filing",
+      "coding_related": false
     },
     {
       "code": "PR-204",
-      "display": "Service not covered under the patient's current benefit plan"
+      "display": "Service not covered under the patient's current benefit plan",
+      "category": "benefit",
+      "coding_related": false
+    },
+    {
+      "code": "CO-50",
+      "display": "Non-covered services because not deemed a medical necessity",
+      "category": "coding",
+      "coding_related": true
+    },
+    {
+      "code": "CO-45",
+      "display": "Charge exceeds the fee schedule/maximum allowable amount",
+      "category": "pricing",
+      "coding_related": false
+    },
+    {
+      "code": "CO-97",
+      "display": "Benefit for this service is included in another already-adjudicated service",
+      "category": "bundling",
+      "coding_related": true
+    },
+    {
+      "code": "PR-1",
+      "display": "Deductible amount",
+      "category": "patient_responsibility",
+      "coding_related": false
+    },
+    {
+      "code": "PR-2",
+      "display": "Coinsurance amount",
+      "category": "patient_responsibility",
+      "coding_related": false
     }
   ]
 }
