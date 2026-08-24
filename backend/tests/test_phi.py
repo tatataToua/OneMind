@@ -8,6 +8,8 @@ boundary is the model, not the data plane.
 
 from __future__ import annotations
 
+import pytest
+
 from onemind.guardrails.phi import PHIRedactor, PHISession
 
 
@@ -19,6 +21,54 @@ def test_structured_identifiers_are_replaced(session: PHISession) -> None:
         assert secret not in out
     assert "PHI_PATIENT_1" in out
     assert "PHI_SSN_1" in out
+    assert "PHI_MRN_1" in out
+
+
+@pytest.mark.parametrize(
+    "written",
+    [
+        "541631736",
+        "541-63-1736",
+        "541 63 1736",
+        "541.63.1736",
+        "541-63 1736",
+        "5 4 1 6 3 1 7 3 6",
+        "5-4-1-6-3-1-7-3-6",
+    ],
+)
+def test_every_written_ssn_form_is_redacted(session: PHISession, written: str) -> None:
+    """Only the dashed form was ever pinned, which is how the spelled-out form
+    in `evals/datasets/phi_leak.jsonl` (leak-09) reached the model untouched.
+    Each grouping a person or a model actually types is now a case."""
+    assert written not in session.redact(f"confirm this SSN is on file: {written}")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "claim CLM-123456789 was denied",
+        "device DEV-123456789 reading high",
+        "during encounter ENC-123456789",
+        "lives at zip 90210-1234",
+    ],
+)
+def test_a_nine_digit_run_that_is_not_an_ssn_survives(session: PHISession, text: str) -> None:
+    """The untested direction, and where the pattern was wrong.
+
+    Matching nine digits with an optional separator at each gap accepted every
+    partition of the run, so a zip+4 (5-4) and the numeric tail of any
+    nine-digit record id both read as an SSN. Record ids surviving untouched is
+    what decisions.md #4 rests on - redacting one breaks the lookup it scopes,
+    for no privacy gain.
+    """
+    assert session.redact(text) == text
+
+
+def test_a_nine_digit_mrn_is_redacted_as_an_mrn(session: PHISession) -> None:
+    """SSN is tried before MRN, so a nine-digit MRN used to be consumed by the
+    SSN pattern and filed under the wrong kind in the audit trace."""
+    out = session.redact("chart MRN-123456789 pulled")
+    assert "123456789" not in out
     assert "PHI_MRN_1" in out
 
 

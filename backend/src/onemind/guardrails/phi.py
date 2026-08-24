@@ -49,12 +49,31 @@ from typing import Any
 # Ordered most-specific first. A phone pattern will happily eat an SSN, so SSN
 # must win; likewise MRN before the bare-digit patient id.
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    # Each digit is allowed at most one space/dot/dash before the next, so the
-    # dashed form (541-63-1736) still matches but so does a spelled-out or
-    # re-typed one (541 63 1736, 5 4 1 6 3 1 7 3 6). Found live: a spelled-out
-    # SSN reached the model untouched because the original pattern only
-    # recognised the dashed form.
-    ("SSN", re.compile(r"\b\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d[ .-]?\d\b")),
+    # The three shapes an SSN is actually written in, as alternatives rather
+    # than as nine digits with an optional separator at each of the eight gaps:
+    #
+    #   541631736          bare
+    #   541-63-1736        the canonical 3-2-4 grouping, any separator
+    #   5 4 1 6 3 1 7 3 6  every digit separated - found live, a spelled-out
+    #                      SSN walked past a pattern written for the dashed form
+    #
+    # Enumerating the groupings is what keeps this from matching *any* nine
+    # digits however punctuated. The optional-separator version accepted every
+    # partition, including the 5-4 of a zip+4 (`90210-1234`), and - because SSN
+    # is tried first - swallowed the numeric tail of any nine-digit record id
+    # before its own pattern could claim it. Decision #4 turns on claim, device
+    # and encounter ids surviving untouched, so the bare form additionally
+    # refuses a run that is the tail of a prefixed id (`CLM-123456789`).
+    (
+        "SSN",
+        re.compile(
+            r"\b(?:"
+            r"(?<![A-Za-z]-)\d{9}"
+            r"|\d{3}[ .-]\d{2}[ .-]\d{4}"
+            r"|\d(?:[ .-]\d){8}"
+            r")\b"
+        ),
+    ),
     ("MRN", re.compile(r"\bMRN-\d{4,10}\b", re.IGNORECASE)),
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b")),
     ("PHONE", re.compile(r"\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b")),
