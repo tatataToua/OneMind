@@ -1,0 +1,328 @@
+{
+  "cases": [
+    {
+      "id": "conv-01",
+      "label": "two-hop in one turn",
+      "turns": [
+        {
+          "prompt": "Look up Tobias Kaur and tell me whether their blood pressure has been trending high",
+          "agents": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 2,
+          "findings": [],
+          "actionable": true,
+          "answer": "Based on verified findings from remote monitoring data for patient ID `12678` (mapped to internal ID `12678`, corresponding to `Tobias Kaur`), the systolic blood pressure is **trending rising** with a breach of 3 readings above 140 mmHg, and the worst observed value was **170.0 mmHg**. However, laboratory data from clinical records for patient ID `12678` does not contain information regarding bloo",
+          "seconds": 15.9,
+          "watch_for": "Remote Monitoring has no patient id and the telemetry plane cannot resolve a name. Clinical resolves one; the second wave must run Remote Monitoring with it and return real readings, not 'no data'."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-02",
+      "label": "follow-up inherits the subject",
+      "turns": [
+        {
+          "prompt": "What medications is Tobias Kaur taking?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Tobias Kaur (patient ID: 12678) is taking the following two medications: * **Atorvastatin**: 20 mg at bedtime. * **Lisinopril**: 10 mg once daily.",
+          "seconds": 5.1,
+          "watch_for": "Establishes the subject for the next turn."
+        },
+        {
+          "prompt": "and what is their blood pressure doing?",
+          "agents": [
+            "remote_monitoring"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Patient 12678's systolic blood pressure (device DEV-8770) has a mean of **144.0 mmHg** over the past 14 days, with a latest reading of **154.0 mmHg**. The trend is reported as \"flat\" in the time series but flagged as \"rising\" by threshold evaluation due to recent breaches above the alert limit of 140 mmHg. Three readings have breached this threshold: - 2026-08-17T08:00:00 (value: **170.0**) - 2026",
+          "seconds": 8.2,
+          "watch_for": "Names no subject at all. Must be actionable from history, and must need NO second wave - the fact is already on the board."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-03",
+      "label": "pronoun with no antecedent still abstains",
+      "turns": [
+        {
+          "prompt": "and what about theirs?",
+          "agents": [],
+          "facts": [],
+          "subject": "",
+          "waves": 0,
+          "findings": [],
+          "actionable": false,
+          "answer": "Which patient's data are you referring to?",
+          "seconds": 2.1,
+          "watch_for": "First turn of a conversation with nothing to refer back to. Memory must not make the router credulous - this still has no subject area."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-04",
+      "label": "subject switch drops the old facts",
+      "turns": [
+        {
+          "prompt": "What medications is Tobias Kaur taking?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Tobias Kaur (patient ID: 12678) is taking the following two medications: * **Atorvastatin**: 20 mg at bedtime. * **Lisinopril**: 10 mg once daily.",
+          "seconds": 4.7,
+          "watch_for": "Subject A."
+        },
+        {
+          "prompt": "Now look up Dana Lindqvist and show their recent labs",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_2",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Patient **12789** (ID: Dana Lindqvist) has the following lab results: * **Hemoglobin A1c**: 9.9% (Effective Date: 2026-07-31, Abnormal) * **LDL cholesterol**: 88.3 mg/dL (Effective Date: 2026-07-31, Normal) * **Hemoglobin A1c**: 6.2% (Effective Date: 2026-04-22, Abnormal) * **LDL cholesterol**: 171.0 mg/dL (Effective Date: 2026-04-22, Abnormal) * **Hemoglobin A1c**: 10.1% (Effective Date: 2025-12-",
+          "seconds": 7.0,
+          "watch_for": "Subject B. The board must hold Dana's id, not Tobias's - answering turn three about the wrong patient is the failure this scoping exists to prevent."
+        },
+        {
+          "prompt": "and their heart rate readings?",
+          "agents": [
+            "remote_monitoring"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_2",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Patient 12789 (ID: 12789) has one recorded device ID, DEV-3431. Their heart rate metric shows a mean of **89.8 bpm**, with a minimum of **54.4 bpm** and maximum of **116.5 bpm**. The trend is falling (-32.5 delta). The most recent reading was recorded on 2026-08-19T08:00:00 at **54.4 bpm**, which did not breach the alert threshold (above 100 bpm) as no breaches were detected in the evaluation resu",
+          "seconds": 7.1,
+          "watch_for": "Must resolve to Dana, the most recent subject."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-05",
+      "label": "cross-turn reconciliation",
+      "turns": [
+        {
+          "prompt": "Why was claim CLM-8873 denied?",
+          "agents": [
+            "revenue_cycle"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [
+            "denial_is_coding_related"
+          ],
+          "actionable": true,
+          "answer": "Claim CLM-8873 was denied with reason code CO-50, indicating non-covered services because the service was not deemed medically necessary; this constitutes a coding denial where correcting the billed codes is the relevant remedy.",
+          "seconds": 5.6,
+          "watch_for": "Retrieves the claim. Evidence is retained."
+        },
+        {
+          "prompt": "is that diagnosis on their chart?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [
+            "billed_diagnosis_matches_problem_list",
+            "denial_is_coding_related"
+          ],
+          "actionable": true,
+          "answer": "The billed diagnosis I10 is present on the patient's active problem list; however, this does not match the verified findings for \"Hyperlipidemia\" or other specific conditions mentioned by the Clinical specialist unless they are also coded as I10. The Clinical specialist confirmed diagnoses of Hyperlipidemia (unspecified) and Essential hypertension but did not explicitly state that these were bille",
+          "seconds": 7.6,
+          "watch_for": "The claim came from turn one and the chart from turn two. The reconciler must compare across them - no single turn holds both."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-06",
+      "label": "no retry when nothing can unblock",
+      "turns": [
+        {
+          "prompt": "How long must we retain audit logs?",
+          "agents": [
+            "compliance"
+          ],
+          "facts": [],
+          "subject": "",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Audit logs of PHI access must be retained for a minimum of **6 years** and up to **7 years**.",
+          "seconds": 4.1,
+          "watch_for": "Compliance declares no needs. Even if it retrieved nothing, no fact could unblock it, so there must be no second wave."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-07",
+      "label": "shared name resolved by MRN",
+      "turns": [
+        {
+          "prompt": "What medications is Samuel Ferreira taking?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [],
+          "subject": "",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
+          "seconds": 5.3,
+          "watch_for": "Two patients share this name. Must say HOW MANY and refuse, without naming either - no MRN, no date of birth, no medication."
+        },
+        {
+          "prompt": "MRN-217621",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "MRN-217621 is taking Fluticasone/salmeterol (250/50 mcg) twice daily.",
+          "seconds": 5.4,
+          "watch_for": "An identifier alone. The held question is reissued scoped to it, so the answer is about medications - the user never retyped the question."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-08",
+      "label": "shared name resolved by date of birth",
+      "turns": [
+        {
+          "prompt": "What medications is Samuel Ferreira taking?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [],
+          "subject": "",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
+          "seconds": 5.3,
+          "watch_for": "Same refusal as conv-07."
+        },
+        {
+          "prompt": "1957-03-18",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [
+            "mrn",
+            "patient_id"
+          ],
+          "subject": "PHI_PATIENT_1",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Samuel Ferreira is taking Fluticasone/salmeterol (250/50 mcg, twice daily).",
+          "seconds": 5.6,
+          "watch_for": "A date of birth identifies nobody alone - it narrows the name. The resumed question must search by name AND pass birth_date."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    },
+    {
+      "id": "conv-09",
+      "label": "a new question is not a disambiguation reply",
+      "turns": [
+        {
+          "prompt": "What medications is Samuel Ferreira taking?",
+          "agents": [
+            "clinical"
+          ],
+          "facts": [],
+          "subject": "",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
+          "seconds": 5.3,
+          "watch_for": "Leaves a question pending."
+        },
+        {
+          "prompt": "How long must we retain audit logs?",
+          "agents": [
+            "compliance"
+          ],
+          "facts": [],
+          "subject": "",
+          "waves": 1,
+          "findings": [],
+          "actionable": true,
+          "answer": "Audit logs of PHI access must be retained for a minimum of **6 years** and up to **7 years**.",
+          "seconds": 4.7,
+          "watch_for": "An unrelated turn. The held question must be dropped, not answered - and must not hijack this one."
+        }
+      ],
+      "failures": [],
+      "passed": true
+    }
+  ],
+  "passed": 9,
+  "total": 9,
+  "failures": []
+}

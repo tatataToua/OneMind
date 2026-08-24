@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, create_model
@@ -36,6 +37,7 @@ from ..guardrails.grounding import ungrounded_values
 from ..guardrails.phi import PHISession
 from ..llm.base import LLMProvider, Message
 from ..observability.trace import SpanKind, SpanStatus, Trace
+from ..orchestrator.facts import Facts
 from ..orchestrator.registry import SpecialistSpec
 from ..tools.base import Tool, ToolRegistry
 
@@ -46,12 +48,12 @@ Your data source: {data_plane}
 
 You have these tools:
 {tool_specs}
-
+{facts}
 Choose the tool calls needed to answer the request. Rules:
 - Use at most {max_calls} calls. Prefer one good call over three redundant ones.
 - Put every argument in `arguments` as a string; omit arguments you do not know.
-- Never invent an identifier. If the request does not name one, leave it out and \
-the tool will report what is available.
+- Never invent an identifier. If neither the request nor the established facts \
+name one, leave it out and the tool will report what is available.
 """
 
 _ANSWER_SYSTEM = """You are the {display_name} specialist in a healthcare system.
@@ -90,6 +92,11 @@ class SpecialistResult(BaseModel):
     # ships.
     unverified: list[str] = Field(default_factory=list)
     error: str | None = None
+    # Retrieved nothing for want of an identifier, rather than for want of an
+    # answer. A structural flag rather than a string match on `error`, because
+    # the second-wave trigger in `graph.py` reads it and matching on the text
+    # of a message is how that trigger would quietly stop firing.
+    blocked: bool = False
 
 
 def _coerce(value: str, schema: dict[str, Any]) -> Any:
@@ -119,8 +126,14 @@ def _is_identifier(name: str) -> bool:
     These are the ones worth grounding. `metric`, `resource` or `days` being
     wrong yields a wrong answer to the right question; `patient_id` being wrong
     yields a confident answer about a different person.
+
+    `name` is in the set for exactly that reason. It became a lookup key of its
+    own when `fhir_search_patient` stopped overloading `patient_id` to mean
+    "id or MRN or name", and a name the request never mentioned selects the
+    wrong person just as effectively as a wrong id - more quietly, because a
+    fabricated name looks like something the user said.
     """
-    return name.endswith("_id") or name in {"mrn", "birth_date"}
+    return name.endswith("_id") or name in {"mrn", "birth_date", "name"}
 
 
 def _is_coded_value(name: str) -> bool:
@@ -147,6 +160,45 @@ def _must_be_grounded(name: str) -> bool:
     reads as one rule while each rationale stays with its own predicate.
     """
     return _is_identifier(name) or _is_coded_value(name)
+
+
+# Matches through to the trailing index deliberately. An earlier version ended
+# at `\b` after the kind, which never fires: `_` is a word character, so there
+# is no boundary between `NAME` and `_1`, and the predicate silently returned
+# False for every request it was given.
+_SUBJECT_TOKEN = re.compile(r"PHI[_ ]?(?:NAME|PATIENT|MRN|SSN|DOB)[_ ]?\d+", re.IGNORECASE)
+
+
+def _names_a_subject(request: str) -> bool:
+    """True when the request is plainly about a particular person.
+
+    Read off the redaction placeholders rather than by looking for names: by
+    the time a specialist sees a request, every identifier the guardrail
+    recognised is a token, and a token is a far more reliable signal than any
+    name-detection this module could attempt.
+
+    Used for two decisions that turn out to be the same question.
+
+    An omitted scoping argument is only a problem when the question is about
+    somebody - "what is the SpO2 threshold" is legitimately unscoped.
+
+    And established facts may only be offered when the request names nobody.
+    Observed live: asked "what is PHI_NAME_1 taking?" and then "now look up
+    PHI_NAME_2 and show their labs", the planner used the `patient_id` on the
+    board - the first patient's - and reported that no data existed for the
+    second. Memory silently outranked an explicit instruction, and the system
+    answered confidently about the wrong person.
+
+    So the rule is that the request always wins and memory speaks only into
+    silence. The second wave does not depend on this: it supplies the resolved
+    identifier by substituting the argument directly, which no prompt can
+    talk it out of.
+
+    The consequence when redaction is disabled is deliberate and worth knowing:
+    no tokens means no signal, so an under-scoped call proceeds exactly as it
+    did before this check existed. Turning the guardrail off turns this off.
+    """
+    return bool(_SUBJECT_TOKEN.search(request))
 
 
 def _is_grounded(value: str, request: str, session: PHISession) -> bool:
@@ -215,6 +267,8 @@ class BaseSpecialist:
         trace: Trace,
         session: PHISession,
         parent_id: str | None = None,
+        facts: Facts | None = None,
+        wave: int = 1,
     ) -> SpecialistResult:
         span = trace.start(
             SpanKind.AGENT,
@@ -222,10 +276,11 @@ class BaseSpecialist:
             parent_id=parent_id,
             agent=self.spec.key,
             data_plane=self.spec.data_plane,
+            wave=wave,
         )
         try:
             result = await asyncio.wait_for(
-                self._run(request, trace, span, session),
+                self._run(request, trace, span, session, facts, wave),
                 timeout=settings.agent_timeout_s,
             )
             trace.end(
@@ -252,7 +307,13 @@ class BaseSpecialist:
             )
 
     async def _run(
-        self, request: str, trace: Trace, parent: str, session: PHISession
+        self,
+        request: str,
+        trace: Trace,
+        parent: str,
+        session: PHISession,
+        facts: Facts | None = None,
+        wave: int = 1,
     ) -> SpecialistResult:
         plan = await self.provider.structured(
             [
@@ -263,6 +324,14 @@ class BaseSpecialist:
                         data_plane=self.spec.data_plane,
                         tool_specs=self._tool_specs(),
                         max_calls=MAX_CALLS,
+                        # The request always beats memory: facts are offered
+                        # only when the request names nobody of its own. See
+                        # `_names_a_subject`.
+                        facts=(
+                            facts.as_prompt_block()
+                            if facts and not _names_a_subject(request)
+                            else ""
+                        ),
                     ),
                 ),
                 Message(role="user", content=request),
@@ -288,11 +357,68 @@ class BaseSpecialist:
                 if key in props and str(val).strip()
             }
 
+            # An omitted scoping argument is not the harmless case it looks
+            # like. `telemetry_series(patient_id="")` does not fail - it reads
+            # every device in the store, so a question about one person becomes
+            # a scan across all of them, and the specialist then answers "no
+            # data" perfectly confidently.
+            #
+            # Two repairs, in order. If the board already holds the identifier,
+            # use it: it was established by a sibling's retrieval, and it is a
+            # placeholder, so it passes the grounding check below unchanged.
+            # Otherwise, if the request is plainly about a person we cannot
+            # name, decline rather than widen - and report it as blocked, which
+            # is what earns this specialist a second wave once someone resolves
+            # the identifier.
+            # A `needs` key missing from a call that already carries some other
+            # identifier is not under-scoping. `claim_lookup(claim_id=...)` is
+            # fully scoped to one record and wants no patient id; treating the
+            # absence as a gap blocked a correct call and cost a pointless
+            # second wave. Only a call with no identifier at all can widen.
+            scoped_by_something = any(_is_identifier(k) and str(v).strip() for k, v in args.items())
+
+            under_scoped: list[str] = []
+            for key in self.spec.needs:
+                if key not in props:
+                    continue
+                established = facts.value(key) if facts else ""
+                supplied = str(args.get(key, "")).strip()
+
+                if not supplied:
+                    if established:
+                        args[key] = established
+                    elif _names_a_subject(request) and not scoped_by_something:
+                        under_scoped.append(key)
+                elif established and wave > 1 and supplied != established:
+                    # On a retry only, the board wins. Wave one demonstrably
+                    # retrieved nothing with what the model chose - typically a
+                    # name placeholder passed as a patient id, which is grounded,
+                    # plausible, and unresolvable on a plane that keys by id. The
+                    # board holds an identifier a sibling actually resolved, so
+                    # preferring it is the entire point of running again.
+                    #
+                    # Restricted to wave > 1 deliberately: overriding a
+                    # first-round argument would override the request itself.
+                    args[key] = established
+
+            if under_scoped:
+                widened = trace.start(
+                    SpanKind.GUARDRAIL,
+                    "Unscoped lookup declined",
+                    parent_id=parent,
+                    tool=name,
+                    arguments=sorted(under_scoped),
+                )
+                trace.end(widened, status=SpanStatus.ERROR, blocked=True)
+                ungrounded = True
+                continue
+
             invented = [
                 key
                 for key, val in args.items()
                 if _must_be_grounded(key) and not _is_grounded(str(val), request, session)
             ]
+
             if invented:
                 # The whole call goes, not just the offending argument. These
                 # arguments are what scope the lookup, so a call stripped of one
@@ -357,6 +483,7 @@ class BaseSpecialist:
                 display_name=self.spec.display_name,
                 answer="",
                 error=f"{self.spec.display_name}: {reason}",
+                blocked=True,
             )
 
         evidence = json.dumps(executed, indent=2, default=str)
@@ -413,7 +540,33 @@ class BaseSpecialist:
             tool_calls=executed,
             citations=list(dict.fromkeys(citations)),
             unverified=unverified,
+            blocked=_retrieved_nothing(executed),
         )
+
+
+def _retrieved_nothing(executed: list[dict[str, Any]]) -> bool:
+    """True when every lookup this specialist ran reported no match.
+
+    The other half of "blocked", and the half the live model actually hits. An
+    invented identifier is caught before the call; this is the case where the
+    argument was perfectly grounded and still useless - asked about a patient by
+    name, the planner passes `PHI_NAME_1` as `patient_id`, which is a real
+    placeholder from the request and resolves to a real name, and the telemetry
+    plane keys by id and matches nothing.
+
+    Reported as blocked so the second wave can offer the id a sibling resolved.
+    The cost of being wrong is one extra agent round returning the same answer;
+    the cost of not doing it is that a two-hop question never works.
+
+    Only an explicit `found: False` counts. A tool that does not use the
+    convention - `policy_search` returns prose - is never read as empty.
+    """
+    if not executed:
+        return False
+    return all(
+        isinstance(call.get("result"), dict) and call["result"].get("found") is False
+        for call in executed
+    )
 
 
 def _citations_from(output: Any) -> list[str]:

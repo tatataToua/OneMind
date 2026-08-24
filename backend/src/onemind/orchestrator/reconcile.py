@@ -160,10 +160,25 @@ def _patient(ev: Evidence) -> dict[str, Any] | None:
     A `found: false` result includes the ambiguous-match refusal, which is
     precisely the case where comparing would risk using the wrong person's
     chart.
+
+    Two shapes carry a problem list, and the check needs to work from either.
+    `fhir_search_patient` returns the whole record with `conditions`;
+    `fhir_get_resource(resource="conditions")` returns the same `{code,
+    display}` rows under `items`. Asked "is that diagnosis on their chart",
+    the planner reaches for the second at least as often as the first - and a
+    comparison that fires only for one of two equivalent retrievals looks
+    exactly like a broken check to the person who asked.
     """
     for output in ev.outputs("fhir_search_patient"):
         if output.get("found"):
             return output
+
+    for output in ev.outputs("fhir_get_resource"):
+        if output.get("found") and output.get("resource") == "conditions":
+            return {
+                "patient_id": output.get("patient_id"),
+                "conditions": output.get("items", []),
+            }
     return None
 
 
@@ -172,7 +187,11 @@ def _patient(ev: Evidence) -> dict[str, Any] | None:
 
 @check(
     name="billed_diagnosis_matches_problem_list",
-    requires=("claim_lookup", "fhir_search_patient"),
+    # Only the claim side is named here. The chart can arrive from either of two
+    # tools (see `_patient`), and `requires` has no way to say "either of these"
+    # - so the clinical precondition lives in `_patient`, which already returns
+    # None and short-circuits the check when no usable record resolved.
+    requires=("claim_lookup",),
 )
 def billed_diagnosis_matches_problem_list(ev: Evidence) -> list[Finding]:
     """Is the diagnosis billed on the claim recorded on the patient's chart?
@@ -321,11 +340,39 @@ def _in_scope(findings: list[Finding], request: str) -> list[Finding]:
     return [f for f in findings if not f.subject or f in named]
 
 
+def _deduplicate(findings: list[Finding]) -> list[Finding]:
+    """Collapse identical findings, keeping the first.
+
+    `results` can now carry evidence retained from earlier turns alongside this
+    turn's, so the same claim can reach a check from two directions. Identical
+    statements are the harmless case; the harmful one is a reader concluding
+    that two independent checks agreed.
+
+    Keyed on the statement rather than on the check name, because a check that
+    legitimately produces several findings - one per claim - must keep all of
+    them.
+    """
+    seen: set[str] = set()
+    unique: list[Finding] = []
+    for finding in findings:
+        if finding.statement in seen:
+            continue
+        seen.add(finding.statement)
+        unique.append(finding)
+    return unique
+
+
 def reconcile(results: Sequence[SpecialistResult], request: str = "") -> list[Finding]:
     """Run every check whose required evidence is present.
 
     `request` is the redacted request, used only to scope the result set. It is
     never read as evidence - nothing here believes anything the request asserts.
+
+    `results` may include evidence retained from earlier turns of the same
+    conversation, which is what lets a claim retrieved at turn two be compared
+    against a chart retrieved at turn six. Nothing here needs to know that: the
+    checks read whatever evidence they are handed, and `Conversation.retain`
+    guarantees it all concerns one patient.
     """
     evidence = Evidence(results)
     findings: list[Finding] = []
@@ -333,4 +380,5 @@ def reconcile(results: Sequence[SpecialistResult], request: str = "") -> list[Fi
         if not evidence.has(*registered.requires):
             continue
         findings.extend(registered.run(evidence))
+    findings = _deduplicate(findings)
     return _in_scope(findings, request) if request else findings

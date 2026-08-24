@@ -4,7 +4,8 @@ export type SpanKind =
   | "agent"
   | "tool"
   | "reconcile"
-  | "synthesize";
+  | "synthesize"
+  | "memory";
 
 /**
  * A comparison computed from the records the specialists retrieved, rather
@@ -24,6 +25,18 @@ export interface Finding {
   provenance: string;
 }
 
+/**
+ * An identifier one specialist established that another can use. Always a
+ * redaction placeholder - the panel that renders these must never show a real
+ * patient id, which is why the backend keeps them in redaction space.
+ */
+export interface Fact {
+  key: string;
+  value: string;
+  source: string;
+  turn: number;
+}
+
 export interface Span {
   span_id: string;
   parent_id: string | null;
@@ -37,6 +50,8 @@ export interface Span {
 
 export interface Outcome {
   request_id: string;
+  /** Server-minted. Echo it back to continue the same conversation. */
+  session_id: string;
   answer: string;
   agents: string[];
   citations: string[];
@@ -44,6 +59,8 @@ export interface Outcome {
   unverified: string[];
   /** Cross-plane comparisons computed after fan-in. See `reconcile.py`. */
   findings: Finding[];
+  /** What the conversation currently knows. See `facts.py`. */
+  facts: Fact[];
   clarifying_question: string;
   is_actionable: boolean;
   rationale: string;
@@ -96,11 +113,12 @@ export async function streamChat(
   message: string,
   handlers: StreamHandlers,
   signal?: AbortSignal,
+  sessionId?: string,
 ): Promise<void> {
   const res = await fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, session_id: sessionId ?? null }),
     signal,
   });
 

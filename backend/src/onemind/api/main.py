@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from ..bootstrap import default_orchestrator
+from ..bootstrap import default_conversations, default_orchestrator
 from ..config import settings
 from ..examples import EXAMPLES
 from ..observability.trace import Trace
@@ -42,6 +42,10 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
+    # Omitted on the first turn. The server mints the id and returns it on the
+    # `done` event; the client echoes it back. Never client-chosen: a guessable
+    # id would hand someone else's redaction vocabulary to whoever asked for it.
+    session_id: str | None = Field(default=None, max_length=64)
 
 
 @app.get("/api/health")
@@ -80,17 +84,25 @@ async def examples() -> dict[str, Any]:
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest) -> dict[str, Any]:
-    """Non-streaming. Used by the eval harness and by tests."""
-    outcome = await default_orchestrator().run(request.message)
-    return outcome
+    """Non-streaming. Used by the eval harness and by tests.
+
+    A request without `session_id` is standalone: no memory is created for it,
+    so the eval harness keeps getting one cold request per row.
+    """
+    conversation = default_conversations().get(request.session_id) if request.session_id else None
+    return await default_orchestrator().run(request.message, conversation=conversation)
 
 
 @app.post("/api/chat/stream")
 async def chat_stream(request: ChatRequest) -> StreamingResponse:
+    # Resolved outside the generator so an unknown or expired id becomes a new
+    # conversation before the first byte, not an error mid-stream.
+    conversation = default_conversations().get(request.session_id)
+
     async def events() -> AsyncIterator[str]:
         trace = Trace()
         try:
-            async for event in default_orchestrator().stream(request.message, trace):
+            async for event in default_orchestrator().stream(request.message, trace, conversation):
                 yield _sse(event["event"], event["data"])
         except Exception as exc:  # noqa: BLE001 - the client needs to hear about it
             yield _sse("error", {"message": str(exc)})

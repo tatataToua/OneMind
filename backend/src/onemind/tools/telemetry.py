@@ -16,6 +16,71 @@ from . import store
 from .base import obj_schema, tool, tools
 
 
+def _not_an_identifier(patient_id: str) -> dict[str, Any]:
+    """Refusal for a `patient_id` that is a name rather than an identifier.
+
+    This plane keys by identifier and holds no way to resolve a person from a
+    name. Before this check it filtered on the name, matched nothing, and
+    reported "no monitored device" - which reads as a fact about the patient
+    when it is really a fact about the argument. Saying which of the two it is
+    lets the orchestrator retry with an identifier a sibling resolved instead
+    of reporting a false negative.
+    """
+    return {
+        "found": False,
+        "invalid_key": True,
+        "needs": ["patient_id"],
+        "detail": (
+            "patient_id must be a patient identifier, not a name. This data "
+            "source cannot resolve people by name."
+        ),
+    }
+
+
+def _no_series(patient_id: str = "") -> dict[str, Any]:
+    """The miss payload, with a hint scoped to whoever was asked about.
+
+    Metric names are schema and safe to return - they help a planner retry with
+    a valid one. Which *set* is returned is the whole question, and getting it
+    wrong produced a self-contradicting answer live:
+
+        Q: Has patient 12456 breached their SpO2 alert threshold recently?
+        A: No, there is no monitored device for patient 12456 that matches the
+           metric "spo2". The available metrics for this patient are
+           blood_pressure_systolic, heart_rate, and spo2.
+
+    The list was every metric in the store, sitting beside a `detail` that said
+    "that patient", so the model read it as that patient's. 12456 has no
+    monitored devices at all, and the true answer is "none".
+
+    So the hint follows the question. Asked about one patient, it reports only
+    what that patient has - which also stops a miss from reporting what the
+    rest of the population is monitored for.
+    """
+    if patient_id:
+        mine = sorted({d["metric"] for d in _devices_for(patient_id)})
+        if not mine:
+            return {
+                "found": False,
+                "available_metrics": [],
+                "detail": "this patient has no monitored devices",
+            }
+        return {
+            "found": False,
+            "available_metrics": mine,
+            "detail": (
+                "this patient has no monitored device for that metric; "
+                "available_metrics lists the ones they do have"
+            ),
+        }
+
+    return {
+        "found": False,
+        "available_metrics": sorted({d["metric"] for d in store.devices()}),
+        "detail": "no monitored device matches that metric",
+    }
+
+
 def _devices_for(patient_id: str = "", metric: str = "") -> list[dict[str, Any]]:
     rows = store.devices()
     if patient_id:
@@ -46,16 +111,11 @@ def _devices_for(patient_id: str = "", metric: str = "") -> list[dict[str, Any]]
     ),
 )
 def telemetry_series(patient_id: str = "", metric: str = "", days: int = 14) -> dict[str, Any]:
+    if patient_id and not store.is_patient_id(patient_id):
+        return _not_an_identifier(patient_id)
     targets = _devices_for(patient_id, metric)
     if not targets:
-        # Metric names are schema and safe to return - they help the model
-        # retry with a valid one. The patient ids they used to be paired with
-        # were not: that turned a miss into a roster of who is monitored.
-        return {
-            "found": False,
-            "detail": "no monitored device matches that patient and metric",
-            "available_metrics": sorted({d["metric"] for d in store.devices()}),
-        }
+        return _no_series(patient_id)
 
     window = max(1, min(days, 21))
     out = []
@@ -118,6 +178,8 @@ def telemetry_series(patient_id: str = "", metric: str = "", days: int = 14) -> 
     ),
 )
 def evaluate_thresholds(patient_id: str = "", metric: str = "", days: int = 7) -> dict[str, Any]:
+    if patient_id and not store.is_patient_id(patient_id):
+        return _not_an_identifier(patient_id)
     series = telemetry_series(patient_id=patient_id, metric=metric, days=days)
     if not series.get("found"):
         return series

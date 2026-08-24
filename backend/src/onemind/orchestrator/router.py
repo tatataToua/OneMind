@@ -42,6 +42,21 @@ Set is_actionable=false ONLY when the subject area itself is unclear - the reque
 could plausibly belong to any of the agents, or names no topic at all. Then put ONE \
 short question in clarifying_question and leave agents empty."""
 
+# Appended only when there is history. Marked as context and never as the thing
+# being asked, because a 4B model handed a transcript will happily route the
+# previous question again - or answer it. The instruction to route only the
+# latest message is repeated after the transcript rather than before it, where
+# it is the last thing read.
+_HISTORY = """
+
+EARLIER IN THIS CONVERSATION (context only - do NOT route these):
+{history}
+
+Route ONLY the latest message below. Use the history to resolve what it refers \
+to - "her", "that claim", "the same patient" - and nothing else. A follow-up \
+that names no subject of its own is still actionable when the history makes \
+the subject clear."""
+
 
 class RoutingDecision(BaseModel):
     """Normalised routing result handed to the graph."""
@@ -75,17 +90,17 @@ class Router:
         self.provider = provider
         self.registry = roster or registry
 
-    async def route(self, request: str) -> RoutingDecision:
+    async def route(self, request: str, history: str = "") -> RoutingDecision:
         keys = tuple(self.registry.keys())
         if not keys:
             raise RuntimeError("no specialists registered")
 
         schema = _decision_schema(keys)
+        system = _SYSTEM.format(catalogue=self.registry.routing_block())
+        if history.strip():
+            system += _HISTORY.format(history=history.strip())
         messages = [
-            Message(
-                role="system",
-                content=_SYSTEM.format(catalogue=self.registry.routing_block()),
-            ),
+            Message(role="system", content=system),
             Message(role="user", content=request),
         ]
         raw = await self.provider.structured(messages, schema)

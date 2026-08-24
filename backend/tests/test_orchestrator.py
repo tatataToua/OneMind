@@ -247,6 +247,7 @@ async def test_trace_covers_the_whole_pipeline(make_orchestrator) -> None:
         SpanKind.ROUTE,
         SpanKind.AGENT,
         SpanKind.TOOL,
+        SpanKind.MEMORY,
         SpanKind.RECONCILE,
         SpanKind.SYNTHESIZE,
     }

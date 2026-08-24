@@ -18,11 +18,12 @@
   ./run.ps1 demo       # start API and UI together
   ./run.ps1 test       # offline test suite
   ./run.ps1 eval       # routing evaluation (needs Ollama)
+  ./run.ps1 conv       # multi-turn eval: memory + two-wave dispatch
   ./run.ps1 check      # pre-demo readiness check
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'fixtures', 'lint', 'check')]
+    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'fixtures', 'lint', 'check')]
     [string]$Task = 'check'
 )
 
@@ -170,6 +171,12 @@ switch ($Task) {
     'test' { Invoke-Py @('-m', 'pytest', '-q') }
 
     'eval' { Invoke-Py @('../evals/run_eval.py', '--json', '../evals/report.json') }
+
+    # Multi-turn: session memory and two-wave dispatch. Separate from 'eval'
+    # because it is stateful and slower - six conversations, run in sequence.
+    'conv' {
+        Invoke-Py @('../evals/conversations.py', '--json', '../evals/conversations_report.json')
+    }
 
     'fixtures' { Invoke-Py @('fixtures/generate.py') }
 

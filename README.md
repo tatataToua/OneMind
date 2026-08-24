@@ -43,6 +43,13 @@ calls, no data leaving the machine.
   └─────────┬─────────────────────────────────────┘
             ▼
   ┌─────────────────────┐
+  │ RECONCILE           │  cross-plane comparisons, computed in code
+  │                     │  + harvest identifiers into FACTS
+  └─────────┬───────────┘
+            │  a blocked specialist that FACTS can unblock
+            ├──────────────────────────► second wave (max 2, counted)
+            ▼
+  ┌─────────────────────┐
   │ SYNTHESIZE          │  merge + attribute  (skipped for a single answer)
   └─────────┬───────────┘
             ▼
@@ -50,7 +57,10 @@ calls, no data leaving the machine.
   │ PHI guardrail (out) │  placeholders → real values
   └─────────┬───────────┘
             ▼
-      answer + trace
+      answer + trace + facts
+
+  FACTS persist for the conversation, so the next turn starts knowing who
+  "they" refers to. Values on the board are placeholders, never real ids.
 ```
 
 The four specialists are split by **what data they can reach**, not by topic.
@@ -97,9 +107,17 @@ OLLAMA_NUM_PARALLEL=4     # one slot per specialist, so fan-out is real
 
 ```bash
 cd backend
-uv run pytest                          # 45 tests, offline, no model needed
-uv run python ../evals/run_eval.py     # routing accuracy, needs Ollama
+uv run pytest                              # 207 tests, offline, no model needed
+uv run python ../evals/run_eval.py         # routing accuracy, needs Ollama
+uv run python ../evals/conversations.py    # memory + two-wave dispatch, needs Ollama
+uv run python ../evals/phi_leak.py         # adversarial PHI extraction, needs Ollama
 ```
+
+Multi-turn evaluation, nine scripted conversations against `qwen3.5:4b`:
+**9/9 pass** — two-hop resolution in a single turn, follow-ups that name no
+subject, subject switching, cross-turn reconciliation, shared-name
+disambiguation by MRN and by date of birth, and the cases that must *not*
+trigger a second wave or leak a candidate's details.
 
 Latest evaluation, 102 labelled prompts against `qwen3.5:4b`:
 
@@ -156,8 +174,18 @@ The UI reads `/api/agents`, so its rail updates too. No other file changes.
    diagnosed Type 2 diabetes patient…"). The model *will* try to look up a
    patient it invented from a tool description's example; the trace shows the
    call blocked rather than a stranger's chart in the answer.
-6. `uv run python ../evals/run_eval.py` — the numbers above, live.
-7. If asked how it scales: add a fifth specialist to the registry.
+6. **Two hops in one question** (`Look up Tobias Kaur and tell me whether their
+   blood pressure has been trending high`) — Remote Monitoring cannot resolve a
+   name, so it blocks; Clinical resolves the id; a second wave runs Remote
+   Monitoring with it. The trace names the identifier that unblocked it.
+7. **A shared name** (`What medications is Samuel Ferreira taking?`) — two
+   patients match. It says *how many* and refuses to say which. Answer
+   `MRN-217621` on the next turn and the original question is reissued; you
+   never retype it.
+8. **Memory** — ask a follow-up that names nobody (`and what are they
+   prescribed?`). Then refresh the page: the memory is gone, by design.
+9. `uv run python ../evals/run_eval.py` — the numbers above, live.
+10. If asked how it scales: add a fifth specialist to the registry.
 
 Expect roughly 4 s for a single-agent answer and 9–14 s for a cross-agent one on
 an RTX 3060 Ti.
@@ -211,8 +239,35 @@ Stated plainly, because a reviewer will find them anyway.
   it.
 - **Retrieval is lexical, not dense.** Deliberate at six documents — see
   [decisions.md](docs/decisions.md#14-policy-retrieval-returns-five-sections-not-three).
-- **No persistence.** Every request is stateless; there is no conversation
-  memory. Follow-up questions must restate their subject.
+- **Memory lasts exactly as long as the tab.** A conversation lives in process
+  and is evicted when idle or when the server restarts; refreshing the page
+  starts a new one. That is the intended behaviour, and also why this is a demo
+  rather than a product.
+- **Two dispatch waves per question, hard stop.** A specialist blocked for want
+  of an identifier gets one retry once a sibling establishes it. A three-hop
+  question fails. The cap is a counter in code, not a judgement, so it cannot
+  stretch when a question genuinely needs more.
+- **Only declared facts travel between specialists.** `patient_id` and `mrn`
+  today. An unanticipated hop fails exactly as it did before; adding one is an
+  extractor plus a `needs` entry, not a new code path.
+- **One subject at a time.** Facts follow the most recently resolved patient and
+  naming a different one drops the previous one's identifiers. A question that
+  genuinely spans two patients is not supported.
+- **A shared name is refused, then resolved across two turns.** Names are not
+  unique, so a name-only lookup that matches several patients says *how many*
+  and stops. It never says *which*: a candidate list is a disclosure about
+  people the asker has established no business with, and there is no
+  authentication here to put that behind. Supplying an MRN, a patient id, or a
+  date of birth on the next turn reissues the original question — you type the
+  identifier, not the question again. A reply carrying two identifiers, or one
+  that asks something of its own, is treated as a new request instead.
+- **The redaction vocabulary now lives for a conversation, not a request.** It
+  has to: mint a fresh one at turn three and `PHI_PATIENT_1` stops meaning the
+  same person. It stays in memory, never reaches disk, and is evicted on an idle
+  timer — but it is a longer window than before.
+- **Specialists still cannot negotiate.** A blocked specialist reports that it is
+  blocked. It cannot ask another for what it needs; the orchestrator either
+  happens to hold the missing identifier or it does not.
 - **Only registered cross-plane joins work.** The reconciler computes the
   comparisons it has checks for. An unanticipated question spanning two data
   planes still degrades to "I cannot determine that" — the improvement is that

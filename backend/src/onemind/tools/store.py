@@ -104,14 +104,107 @@ def find_patients(key: str) -> list[dict[str, Any]]:
     ]
 
 
-def resolve_patients(key: str, birth_date: str = "") -> list[dict[str, Any]]:
-    """Matches for `key`, narrowed by a second identifier when one is given.
+def classify_key(value: str) -> str:
+    """Which lookup field a value belongs in, judged by its shape.
 
-    This is the shape FHIR's `Patient/$match` operation takes: identity is
-    resolved from a set of demographics, not from one string. The narrowing
-    only ever applies to an ambiguous result - supplying a date of birth is how
-    a caller separates two people who share a name, not an extra hurdle in
-    front of an MRN that was already unique.
+    One place decides this, because two callers need the same answer for
+    different reasons: `match_patients` uses it to put a misplaced value where
+    it belongs, and `fhir._unresolved` uses it to report which field was
+    actually searched. When those two disagreed, a name that matched nobody was
+    reported as "patient_id must be an identifier, search by name instead" -
+    advice to do the thing that had just been done.
+    """
+    text = str(value).strip()
+    if not text:
+        return ""
+    if text.casefold().startswith("mrn-"):
+        return "mrn"
+    if text.isdigit():
+        return "patient_id"
+    return "name"
+
+
+def is_patient_id(value: str) -> bool:
+    """True when `value` has the shape of a patient identifier.
+
+    Shape, not existence: a caller needs to distinguish "you gave me a name
+    where an id belongs" from "no such patient", and those warrant different
+    answers. Ids are bare digits and MRNs are `MRN-` prefixed; a human name is
+    neither, and no amount of retrying will make it one.
+    """
+    text = str(value).strip()
+    return bool(text) and (text.isdigit() or text.casefold().startswith("mrn-"))
+
+
+def match_patients(
+    patient_id: str = "",
+    mrn: str = "",
+    name: str = "",
+    birth_date: str = "",
+) -> list[dict[str, Any]]:
+    """Matches on whichever fields the caller supplied, most exact first.
+
+    Separate arguments rather than one overloaded key, because an id and a name
+    are not the same kind of thing and pretending they are caused two distinct
+    failures. A name silently reached a plane that only knows ids and matched
+    nothing; and a lookup could not say whether it had been given a bad
+    identifier or a name it should have searched on.
+
+    Exactness ordering matters: an id or an MRN is unique, so if one is given it
+    decides the answer and a name alongside it is at most a filter. Only a
+    name-only lookup can be ambiguous, which is what makes ambiguity something
+    the caller can plan for rather than a surprise.
+
+    `birth_date` narrows an ambiguous result, the way FHIR's `Patient/$match`
+    resolves identity from a set of demographics rather than one string. It
+    never narrows a result that was already unique - supplying a date of birth
+    separates two people who share a name; it is not an extra hurdle in front
+    of an MRN.
+    """
+    rows = patients()
+
+    # A planner that puts a name in `patient_id` is corrected rather than
+    # refused. Separate arguments tell the model what each field means; they
+    # cannot make it comply, and the plan is fixed in one round with no chance
+    # to observe a complaint and try again. This plane can resolve a name, so
+    # the honest reading of "patient_id=Samuel Ferreira" is a name search - and
+    # `Router._normalise` already sets the precedent for repairing output that
+    # satisfies the schema but not the intent.
+    #
+    # A plane that *cannot* resolve names refuses instead; see
+    # `telemetry._not_an_identifier`. The difference is capability, not policy.
+    supplied = str(patient_id).strip()
+    if supplied:
+        kind = classify_key(supplied)
+        if kind == "mrn":
+            mrn, patient_id = mrn or supplied, ""
+        elif kind == "name":
+            name, patient_id = name or supplied, ""
+
+    if str(patient_id).strip():
+        wanted = str(patient_id).strip()
+        matches = [p for p in rows if p["patient_id"] == wanted]
+    elif str(mrn).strip():
+        folded = str(mrn).strip().casefold()
+        matches = [p for p in rows if p["mrn"].casefold() == folded]
+    elif str(name).strip():
+        folded = str(name).strip().casefold()
+        matches = [p for p in rows if p["name"].casefold() == folded]
+    else:
+        return []
+
+    if len(matches) > 1 and str(birth_date).strip():
+        wanted_dob = str(birth_date).strip()
+        narrowed = [p for p in matches if p["birth_date"] == wanted_dob]
+        if narrowed:
+            return narrowed
+    return matches
+
+
+def resolve_patients(key: str, birth_date: str = "") -> list[dict[str, Any]]:
+    """Legacy single-key resolution, kept for callers that still pass one string.
+
+    Prefer `match_patients`, which knows which kind of thing it was handed.
     """
     matches = find_patients(key)
     if len(matches) > 1 and birth_date.strip():

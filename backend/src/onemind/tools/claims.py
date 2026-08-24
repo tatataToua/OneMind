@@ -68,6 +68,19 @@ def claim_lookup(claim_id: str = "", patient_id: str = "") -> dict[str, Any]:
         return {"found": True, "count": len(matches), "claims": matches}
 
     if patient_id:
+        # The ledger keys by identifier and cannot resolve a person from a name.
+        # Filtering on one would match nothing and report an empty ledger, which
+        # reads as a fact about the patient rather than about the argument.
+        if not store.is_patient_id(patient_id):
+            return {
+                "found": False,
+                "invalid_key": True,
+                "needs": ["patient_id"],
+                "detail": (
+                    "patient_id must be a patient identifier, not a name. This "
+                    "data source cannot resolve people by name."
+                ),
+            }
         wanted = str(patient_id).strip()
         matches = [_classify_denial(c) for c in rows if c["patient_id"] == wanted]
         return {"found": bool(matches), "count": len(matches), "claims": matches}

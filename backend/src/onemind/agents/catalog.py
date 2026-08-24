@@ -39,6 +39,10 @@ REVENUE_CYCLE = registry.register(
             "claims, denials, ICD-10/CPT billing codes, reimbursement and denial-rate analysis"
         ),
         tool_names=["claim_lookup", "validate_code", "denial_summary"],
+        # A claim id is enough on its own, so this rarely fires. It matters for
+        # "which of this patient's claims were denied" when the request names
+        # the patient by name and Clinical is the one that resolves the id.
+        needs=("patient_id",),
         exemplars=[
             "Why was claim CLM-8842 denied and what CPT code should we have used?",
             "What is our denial rate trend?",
@@ -73,6 +77,9 @@ REMOTE_MONITORING = registry.register(
             "and trend detection for remote patient monitoring"
         ),
         tool_names=["telemetry_series", "evaluate_thresholds"],
+        # Both tools scope by patient and this plane holds no way to resolve a
+        # name, so this is the specialist the second wave exists for.
+        needs=("patient_id",),
         exemplars=[
             "Patient's blood pressure cuff has been reading high for three days straight",
             "What is the current alert threshold for SpO2?",

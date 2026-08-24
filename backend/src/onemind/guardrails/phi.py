@@ -126,7 +126,16 @@ def _closest_token(norm: str, known: list[str]) -> str | None:
 
 
 class PHISession:
-    """One redaction vocabulary for the lifetime of a single request."""
+    """One redaction vocabulary, for a request or for a whole conversation.
+
+    A standalone request gets its own. A conversation holds one across every
+    turn, because a token must keep meaning the same person for as long as
+    anyone can refer back to it: mint a fresh vocabulary at turn three and
+    `PHI_PATIENT_1` either fails to rehydrate or resolves to someone else.
+    `orchestrator/conversation.py` owns that lifetime and bounds it.
+
+    What is never shared is one vocabulary between two conversations.
+    """
 
     def __init__(self, known_names: list[str] | None = None) -> None:
         self._names = sorted((n for n in (known_names or []) if n.strip()), key=len, reverse=True)
@@ -155,6 +164,30 @@ class PHISession:
         self._to_token[original] = token
         self._from_token[token] = original
         return token
+
+    def tokenize(self, kind: str, value: str) -> str:
+        """Register a value found in tool output and return its stable token.
+
+        `redact` only tokenises what its patterns recognise in free text, and a
+        structured identifier does not always look like one. `redact_json`
+        serialises a FHIR result to `"patient_id": "12345"`, where `_PATIENT_ID`
+        cannot fire: that pattern needs a patient-ish word followed by
+        whitespace, and `_id": "` is not whitespace. The identifier survives
+        intact, which is right for output the specialist quotes back.
+
+        It is wrong for a value the orchestrator intends to carry forward into
+        another specialist's prompt. `orchestrator/facts.py` uses this to put
+        such a value into redaction space first, so the model plans over a
+        placeholder exactly as it does for every identifier the request
+        supplied - and so `_is_grounded` accepts it without being relaxed.
+
+        Delegates to `_token_for`, so a value already seen under any other
+        route keeps the token it already has rather than gaining a second.
+        """
+        text = value.strip()
+        if not text:
+            return text
+        return self._token_for(kind, text)
 
     # -- directions ----------------------------------------------------------
 

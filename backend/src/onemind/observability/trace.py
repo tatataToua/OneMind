@@ -28,6 +28,10 @@ class SpanKind(StrEnum):
     TOOL = "tool"
     RECONCILE = "reconcile"
     SYNTHESIZE = "synthesize"
+    # Facts established from tool output, and second waves they unblocked. Its
+    # own kind because an audit reader needs to see the literal identifier that
+    # caused a specialist to be run again, not infer it from an agent span.
+    MEMORY = "memory"
 
 
 class SpanStatus(StrEnum):

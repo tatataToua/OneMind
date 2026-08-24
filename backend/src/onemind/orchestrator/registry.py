@@ -11,6 +11,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+from .facts import keys_for_tools
+
 
 @dataclass(frozen=True)
 class SpecialistSpec:
@@ -28,6 +30,21 @@ class SpecialistSpec:
     description: str
     tool_names: list[str] = field(default_factory=list)
     exemplars: list[str] = field(default_factory=list)
+    # Fact keys that scope this specialist's lookups. NOT preconditions -
+    # Revenue Cycle works perfectly well from a bare claim id. The meaning is
+    # narrower: a specialist that reported itself blocked for want of an
+    # identifier is worth retrying once one of these becomes available.
+    needs: tuple[str, ...] = ()
+
+    @property
+    def provides(self) -> tuple[str, ...]:
+        """Fact keys this specialist's tools can establish.
+
+        Derived, never declared. "`fhir_search_patient` yields a `patient_id`"
+        is a fact about the tool, and `facts.py` states it there; repeating it
+        here would be a second copy free to drift from the first.
+        """
+        return keys_for_tools(self.tool_names)
 
 
 class SpecialistRegistry:

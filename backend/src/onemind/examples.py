@@ -64,4 +64,22 @@ EXAMPLES: list[Example] = [
         "prompt": ("Samuel Ferreira, MRN-672113, SSN 412-88-2019 - what is he taking?"),
         "expect": "Name, MRN and SSN are replaced before the model sees them.",
     },
+    {
+        "label": "Two hops",
+        "prompt": (
+            "Look up Tobias Kaur and tell me whether their blood pressure has been trending high"
+        ),
+        "expect": (
+            "Remote Monitoring blocks - the request names no patient id. Clinical "
+            "resolves one, and a second wave runs Remote Monitoring with it."
+        ),
+    },
+    {
+        "label": "Follow-up (ask this second)",
+        "prompt": "and what are they currently prescribed?",
+        "expect": (
+            "Only works as a follow-up. The subject comes from the established "
+            "facts, so no second wave is needed."
+        ),
+    },
 ]

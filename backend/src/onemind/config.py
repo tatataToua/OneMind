@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     # queues rather than parallelises.
     max_parallel_agents: int = 4
     agent_timeout_s: float = 90.0
+    # Waves of dispatch per request. Two means a specialist blocked for want of
+    # an identifier gets one retry once a sibling establishes it. Raising this
+    # reintroduces the unbounded plan-act-observe loop `agents/base.py` exists
+    # to avoid, so it is a cap rather than a starting point.
+    max_waves: int = 2
+
+    # --- session memory -----------------------------------------------------
+    # How long an idle conversation - and the PHI vocabulary it holds - stays
+    # in memory. Nothing is written to disk; this is the whole retention story.
+    session_ttl_s: float = 1800.0
+    max_sessions: int = 200
+    # Prior turns shown to the router. Only the router sees history at all.
+    history_turns: int = 3
+    # Retrieved evidence carried between turns for cross-turn reconciliation.
+    max_retained_results: int = 8
 
     # --- guardrails ---------------------------------------------------------
     phi_redaction_enabled: bool = True
