@@ -27,3 +27,28 @@ A healthcare multi-agent orchestrator: routes a request to the specialists that 
 - PHI redaction crosses the model boundary in both directions — redact toward the model, rehydrate at the tool call and in tool results — never redact-and-stop. `backend/src/onemind/guardrails/phi.py`.
 
 <!-- /bmad:context -->
+
+## Pitfalls
+
+Kept outside the managed block above so a context refresh does not drop them.
+Each one cost a session real time.
+
+- **Run `ruff` from `backend/`, never from the repo root.** The `line-length = 100`
+  setting lives in `backend/pyproject.toml`. Invoked from the root, ruff finds no
+  config and silently uses its default of 88 — `check` merely reports odd results,
+  but `format` rewrites files into a state that `./run.ps1 lint` and CI then reject.
+  `./run.ps1 lint` always gets this right; use it.
+- **The README's evaluation tables are generated.** Everything between
+  `<!-- eval:begin -->` and `<!-- eval:end -->` comes from
+  `evals/comparison_report.json` via `evals/update_readme.py`, and CI runs that
+  script with `--check`. Hand-editing the numbers turns the build red. Prose outside
+  the markers is hand-written and safe.
+- **Never `git add -A` in this repo.** More than one agent session has worked in this
+  single working tree at once, and a blind stage-all has already swept another
+  session's in-progress files into a commit whose message described something else.
+  Stage explicit paths.
+- **`asyncio.run` once per process, not once per phase.** `OllamaProvider` builds one
+  `httpx.AsyncClient` and reuses it, and a pooled connection belongs to the loop that
+  opened it. A second `asyncio.run` dies on `RuntimeError: Event loop is closed` —
+  and in an eval harness it dies *after* the first phase printed a clean table.
+  `evals/run_eval.py:run_all` is the shape to copy.
