@@ -108,7 +108,10 @@ class MonolithArm:
     async def select(self, prompt: str) -> tuple[set[str], str]:
         schema = _selection_schema(self.tool_names)
         messages = [
-            Message(role="system", content=_MONOLITH_SYSTEM.format(catalogue=self._catalogue())),
+            Message(
+                role="system",
+                content=_MONOLITH_SYSTEM.format(catalogue=self._catalogue()),
+            ),
             Message(role="user", content=prompt),
         ]
         raw = await self._provider.structured(messages, schema)

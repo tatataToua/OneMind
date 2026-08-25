@@ -1,0 +1,1364 @@
+{
+  "arms": {
+    "router": {
+      "arm": "router",
+      "model": "ollama",
+      "cases": 102,
+      "runs": 306,
+      "repeat": 3,
+      "single_agent_accuracy": 98.8,
+      "multi_agent_exact_match": 91.7,
+      "abstain_accuracy": 90.0,
+      "overall_exact_match": 97.1,
+      "label_precision": 97.2,
+      "label_recall": 99.0,
+      "latency_ms": {
+        "p50": 1235.4,
+        "p95": 1553.3,
+        "max": 1804.3
+      },
+      "counts": {
+        "single": 240,
+        "multi": 36,
+        "abstain": 30
+      },
+      "confusion": {
+        "clinical": {
+          "clinical": 81,
+          "remote_monitoring": 6,
+          "revenue_cycle": 15,
+          "compliance": 3
+        },
+        "revenue_cycle": {
+          "revenue_cycle": 81,
+          "clinical": 15,
+          "remote_monitoring": 3,
+          "compliance": 3
+        },
+        "compliance": {
+          "compliance": 72,
+          "remote_monitoring": 9,
+          "revenue_cycle": 3,
+          "clinical": 3
+        },
+        "remote_monitoring": {
+          "remote_monitoring": 75,
+          "compliance": 6,
+          "clinical": 3,
+          "revenue_cycle": 3
+        },
+        "(abstain)": {
+          "(abstain)": 27,
+          "clinical": 3,
+          "revenue_cycle": 3
+        }
+      },
+      "misses": [
+        {
+          "id": "clin-05",
+          "attempt": 0,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-05",
+          "attempt": 1,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-05",
+          "attempt": 2,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-05",
+          "attempt": 0,
+          "prompt": "Are we allowed to keep this telemetry, and what is the device actually reporting?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-05",
+          "attempt": 1,
+          "prompt": "Are we allowed to keep this telemetry, and what is the device actually reporting?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-05",
+          "attempt": 2,
+          "prompt": "Are we allowed to keep this telemetry, and what is the device actually reporting?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-08",
+          "attempt": 0,
+          "prompt": "review the file",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-08",
+          "attempt": 1,
+          "prompt": "review the file",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-08",
+          "attempt": 2,
+          "prompt": "review the file",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        }
+      ],
+      "stability": 100.0
+    },
+    "monolith": {
+      "arm": "monolith",
+      "model": "ollama",
+      "cases": 102,
+      "runs": 306,
+      "repeat": 3,
+      "single_agent_accuracy": 62.5,
+      "multi_agent_exact_match": 83.3,
+      "abstain_accuracy": 90.0,
+      "overall_exact_match": 67.6,
+      "label_precision": 83.3,
+      "label_recall": 81.7,
+      "latency_ms": {
+        "p50": 1655.7,
+        "p95": 3465.2,
+        "max": 9262.9
+      },
+      "counts": {
+        "single": 240,
+        "multi": 36,
+        "abstain": 30
+      },
+      "confusion": {
+        "clinical": {
+          "clinical": 78,
+          "revenue_cycle": 33,
+          "remote_monitoring": 6,
+          "compliance": 3
+        },
+        "revenue_cycle": {
+          "revenue_cycle": 78,
+          "clinical": 24,
+          "remote_monitoring": 3,
+          "compliance": 3
+        },
+        "compliance": {
+          "compliance": 27,
+          "(abstain)": 48,
+          "clinical": 6,
+          "remote_monitoring": 9,
+          "revenue_cycle": 3
+        },
+        "remote_monitoring": {
+          "clinical": 21,
+          "remote_monitoring": 72,
+          "(abstain)": 3,
+          "compliance": 9
+        },
+        "(abstain)": {
+          "(abstain)": 27,
+          "clinical": 3,
+          "revenue_cycle": 3
+        }
+      },
+      "misses": [
+        {
+          "id": "clin-01",
+          "attempt": 0,
+          "prompt": "What medications is patient 12345 currently taking?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-01",
+          "attempt": 1,
+          "prompt": "What medications is patient 12345 currently taking?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-01",
+          "attempt": 2,
+          "prompt": "What medications is patient 12345 currently taking?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-02",
+          "attempt": 0,
+          "prompt": "Show me the most recent lab results for patient 12456",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-02",
+          "attempt": 1,
+          "prompt": "Show me the most recent lab results for patient 12456",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-02",
+          "attempt": 2,
+          "prompt": "Show me the most recent lab results for patient 12456",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-04",
+          "attempt": 0,
+          "prompt": "When was patient 12567 last seen, and what was the visit for?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-04",
+          "attempt": 1,
+          "prompt": "When was patient 12567 last seen, and what was the visit for?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-04",
+          "attempt": 2,
+          "prompt": "When was patient 12567 last seen, and what was the visit for?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-05",
+          "attempt": 0,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-05",
+          "attempt": 1,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-05",
+          "attempt": 2,
+          "prompt": "Is the patient's A1c trending in the right direction?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-08",
+          "attempt": 0,
+          "prompt": "Does patient 12789 have a documented COPD diagnosis?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-08",
+          "attempt": 1,
+          "prompt": "Does patient 12789 have a documented COPD diagnosis?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-08",
+          "attempt": 2,
+          "prompt": "Does patient 12789 have a documented COPD diagnosis?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-12",
+          "attempt": 0,
+          "prompt": "List all active prescriptions for patient 12678",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-12",
+          "attempt": 1,
+          "prompt": "List all active prescriptions for patient 12678",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-12",
+          "attempt": 2,
+          "prompt": "List all active prescriptions for patient 12678",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-18",
+          "attempt": 0,
+          "prompt": "How many telehealth visits has patient 12567 had?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-18",
+          "attempt": 1,
+          "prompt": "How many telehealth visits has patient 12567 had?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "clin-18",
+          "attempt": 2,
+          "prompt": "How many telehealth visits has patient 12567 had?",
+          "expected": [
+            "clinical"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-07",
+          "attempt": 0,
+          "prompt": "Show me all claims filed for patient 12900",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-07",
+          "attempt": 1,
+          "prompt": "Show me all claims filed for patient 12900",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-07",
+          "attempt": 2,
+          "prompt": "Show me all claims filed for patient 12900",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-17",
+          "attempt": 0,
+          "prompt": "Is code 95250 billable for continuous glucose monitoring?",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-17",
+          "attempt": 1,
+          "prompt": "Is code 95250 billable for continuous glucose monitoring?",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rev-17",
+          "attempt": 2,
+          "prompt": "Is code 95250 billable for continuous glucose monitoring?",
+          "expected": [
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "comp-02",
+          "attempt": 0,
+          "prompt": "How long are we required to retain audit logs of PHI access?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-02",
+          "attempt": 1,
+          "prompt": "How long are we required to retain audit logs of PHI access?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-02",
+          "attempt": 2,
+          "prompt": "How long are we required to retain audit logs of PHI access?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-03",
+          "attempt": 0,
+          "prompt": "What counts as a reportable breach under HIPAA?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-03",
+          "attempt": 1,
+          "prompt": "What counts as a reportable breach under HIPAA?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-03",
+          "attempt": 2,
+          "prompt": "What counts as a reportable breach under HIPAA?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-04",
+          "attempt": 0,
+          "prompt": "Which identifiers have to be removed for Safe Harbor de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-04",
+          "attempt": 1,
+          "prompt": "Which identifiers have to be removed for Safe Harbor de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-04",
+          "attempt": 2,
+          "prompt": "Which identifiers have to be removed for Safe Harbor de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-05",
+          "attempt": 0,
+          "prompt": "What encryption standard do we require for data at rest?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-05",
+          "attempt": 1,
+          "prompt": "What encryption standard do we require for data at rest?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-05",
+          "attempt": 2,
+          "prompt": "What encryption standard do we require for data at rest?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-06",
+          "attempt": 0,
+          "prompt": "Does a cloud storage provider qualify for the conduit exception?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-06",
+          "attempt": 1,
+          "prompt": "Does a cloud storage provider qualify for the conduit exception?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-06",
+          "attempt": 2,
+          "prompt": "Does a cloud storage provider qualify for the conduit exception?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-08",
+          "attempt": 0,
+          "prompt": "How many days do we have to notify individuals after a breach?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-08",
+          "attempt": 1,
+          "prompt": "How many days do we have to notify individuals after a breach?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-08",
+          "attempt": 2,
+          "prompt": "How many days do we have to notify individuals after a breach?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-09",
+          "attempt": 0,
+          "prompt": "Is TLS 1.1 acceptable for transmitting PHI?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Are you asking about the technical security of a specific protocol version (TLS) or whether it is compliant with HIPAA regulations?"
+        },
+        {
+          "id": "comp-09",
+          "attempt": 1,
+          "prompt": "Is TLS 1.1 acceptable for transmitting PHI?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Are you asking about the technical security of a specific protocol version (TLS) or whether it is compliant with HIPAA regulations?"
+        },
+        {
+          "id": "comp-09",
+          "attempt": 2,
+          "prompt": "Is TLS 1.1 acceptable for transmitting PHI?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Are you asking about the technical security of a specific protocol version (TLS) or whether it is compliant with HIPAA regulations?"
+        },
+        {
+          "id": "comp-10",
+          "attempt": 0,
+          "prompt": "What are the four breach risk assessment factors?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-10",
+          "attempt": 1,
+          "prompt": "What are the four breach risk assessment factors?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-10",
+          "attempt": 2,
+          "prompt": "What are the four breach risk assessment factors?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-11",
+          "attempt": 0,
+          "prompt": "Do we need to report a breach if the data was properly encrypted?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-11",
+          "attempt": 1,
+          "prompt": "Do we need to report a breach if the data was properly encrypted?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-11",
+          "attempt": 2,
+          "prompt": "Do we need to report a breach if the data was properly encrypted?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-13",
+          "attempt": 0,
+          "prompt": "How should media containing PHI be disposed of?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-13",
+          "attempt": 1,
+          "prompt": "How should media containing PHI be disposed of?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-13",
+          "attempt": 2,
+          "prompt": "How should media containing PHI be disposed of?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-14",
+          "attempt": 0,
+          "prompt": "What is the Expert Determination method for de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-14",
+          "attempt": 1,
+          "prompt": "What is the Expert Determination method for de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-14",
+          "attempt": 2,
+          "prompt": "What is the Expert Determination method for de-identification?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-15",
+          "attempt": 0,
+          "prompt": "How often must encryption keys be rotated?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-15",
+          "attempt": 1,
+          "prompt": "How often must encryption keys be rotated?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-15",
+          "attempt": 2,
+          "prompt": "How often must encryption keys be rotated?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-16",
+          "attempt": 0,
+          "prompt": "Are ages over 89 handled differently under Safe Harbor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you clarify which specific policy or regulation (e.g., HIPAA Privacy Rule safe harbor for de-identification) you are referring to when asking about ages over 89?"
+        },
+        {
+          "id": "comp-16",
+          "attempt": 1,
+          "prompt": "Are ages over 89 handled differently under Safe Harbor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you clarify which specific policy or regulation (e.g., HIPAA Privacy Rule safe harbor for de-identification) you are referring to when asking about ages over 89?"
+        },
+        {
+          "id": "comp-16",
+          "attempt": 2,
+          "prompt": "Are ages over 89 handled differently under Safe Harbor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you clarify which specific policy or regulation (e.g., HIPAA Privacy Rule safe harbor for de-identification) you are referring to when asking about ages over 89?"
+        },
+        {
+          "id": "comp-18",
+          "attempt": 0,
+          "prompt": "Can audit logs themselves contain PHI values?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-18",
+          "attempt": 1,
+          "prompt": "Can audit logs themselves contain PHI values?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-18",
+          "attempt": 2,
+          "prompt": "Can audit logs themselves contain PHI values?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-19",
+          "attempt": 0,
+          "prompt": "Does running inference on our own hardware satisfy the in-transit requirement?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-19",
+          "attempt": 1,
+          "prompt": "Does running inference on our own hardware satisfy the in-transit requirement?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-19",
+          "attempt": 2,
+          "prompt": "Does running inference on our own hardware satisfy the in-transit requirement?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-20",
+          "attempt": 0,
+          "prompt": "When is a BAA required for a subcontractor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-20",
+          "attempt": 1,
+          "prompt": "When is a BAA required for a subcontractor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "comp-20",
+          "attempt": 2,
+          "prompt": "When is a BAA required for a subcontractor?",
+          "expected": [
+            "compliance"
+          ],
+          "got": [],
+          "question": "Could you say a bit more about what you need?"
+        },
+        {
+          "id": "rpm-01",
+          "attempt": 0,
+          "prompt": "Has patient 12456 breached their SpO2 alert threshold recently?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-01",
+          "attempt": 1,
+          "prompt": "Has patient 12456 breached their SpO2 alert threshold recently?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-01",
+          "attempt": 2,
+          "prompt": "Has patient 12456 breached their SpO2 alert threshold recently?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-03",
+          "attempt": 0,
+          "prompt": "What is the current alert threshold configured for heart rate?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [],
+          "question": "Could you specify which patient or device series this query applies to?"
+        },
+        {
+          "id": "rpm-03",
+          "attempt": 1,
+          "prompt": "What is the current alert threshold configured for heart rate?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [],
+          "question": "Could you specify which patient or device series this query applies to?"
+        },
+        {
+          "id": "rpm-03",
+          "attempt": 2,
+          "prompt": "What is the current alert threshold configured for heart rate?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [],
+          "question": "Could you specify which patient or device series this query applies to?"
+        },
+        {
+          "id": "rpm-04",
+          "attempt": 0,
+          "prompt": "Show me the last two weeks of glucose readings for patient 12678",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-04",
+          "attempt": 1,
+          "prompt": "Show me the last two weeks of glucose readings for patient 12678",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-04",
+          "attempt": 2,
+          "prompt": "Show me the last two weeks of glucose readings for patient 12678",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-09",
+          "attempt": 0,
+          "prompt": "Give me the telemetry trend for patient 12567",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-09",
+          "attempt": 1,
+          "prompt": "Give me the telemetry trend for patient 12567",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-09",
+          "attempt": 2,
+          "prompt": "Give me the telemetry trend for patient 12567",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-18",
+          "attempt": 0,
+          "prompt": "Has the remote monitoring data been stable for patient 12345?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-18",
+          "attempt": 1,
+          "prompt": "Has the remote monitoring data been stable for patient 12345?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "rpm-18",
+          "attempt": 2,
+          "prompt": "Has the remote monitoring data been stable for patient 12345?",
+          "expected": [
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-02",
+          "attempt": 0,
+          "prompt": "Is our device telemetry retention compliant, and has patient 12345 breached their blood pressure threshold?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "compliance",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-02",
+          "attempt": 1,
+          "prompt": "Is our device telemetry retention compliant, and has patient 12345 breached their blood pressure threshold?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "compliance",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-02",
+          "attempt": 2,
+          "prompt": "Is our device telemetry retention compliant, and has patient 12345 breached their blood pressure threshold?",
+          "expected": [
+            "compliance",
+            "remote_monitoring"
+          ],
+          "got": [
+            "clinical",
+            "compliance",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-07",
+          "attempt": 0,
+          "prompt": "Can we bill remote monitoring for this patient, and are their readings breaching threshold?",
+          "expected": [
+            "remote_monitoring",
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-07",
+          "attempt": 1,
+          "prompt": "Can we bill remote monitoring for this patient, and are their readings breaching threshold?",
+          "expected": [
+            "remote_monitoring",
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "x-07",
+          "attempt": 2,
+          "prompt": "Can we bill remote monitoring for this patient, and are their readings breaching threshold?",
+          "expected": [
+            "remote_monitoring",
+            "revenue_cycle"
+          ],
+          "got": [
+            "clinical",
+            "remote_monitoring"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-03",
+          "attempt": 0,
+          "prompt": "Can you help me with the thing for the patient?",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-03",
+          "attempt": 1,
+          "prompt": "Can you help me with the thing for the patient?",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        },
+        {
+          "id": "amb-03",
+          "attempt": 2,
+          "prompt": "Can you help me with the thing for the patient?",
+          "expected": [],
+          "got": [
+            "clinical",
+            "revenue_cycle"
+          ],
+          "question": ""
+        }
+      ],
+      "stability": 100.0
+    }
+  }
+}

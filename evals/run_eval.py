@@ -345,7 +345,9 @@ def main() -> int:
     if args.limit:
         rows = rows[: args.limit]
     provider = build_provider()
-    model = getattr(provider, "name", "unknown")
+    # The provider name ("ollama") is not the claim; the weights are. A reader
+    # reproducing these numbers needs to know which model produced them.
+    model = getattr(provider, "model", None) or getattr(provider, "name", "unknown")
     wanted = ARMS if args.arm == "both" else (args.arm,)
 
     results = asyncio.run(run_all(wanted, rows, args.repeat, provider))
