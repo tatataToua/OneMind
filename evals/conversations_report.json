@@ -17,8 +17,8 @@
           "waves": 2,
           "findings": [],
           "actionable": true,
-          "answer": "Based on verified findings from remote monitoring data for patient `12678` (ID: 12678), the systolic blood pressure is **trending rising** with a breach of 3 readings above 140 mmHg, reaching a worst observed value of **170.0 mmHg**. The clinical specialist noted that laboratory data for `Tobias Kaur` (ID: 12678) contained no blood pressure information; however, the remote monitoring section provi",
-          "seconds": 12.0,
+          "answer": "Based on verified findings from remote monitoring data for patient ID `12678` (mapped to internal ID `12678`, corresponding to `Tobias Kaur`), the systolic blood pressure is **trending rising** with a breach of 3 readings above 140 mmHg, and the worst observed value was **170.0 mmHg**. However, laboratory data from clinical records for patient ID `12678` does not contain information regarding bloo",
+          "seconds": 15.9,
           "watch_for": "Remote Monitoring has no patient id and the telemetry plane cannot resolve a name. Clinical resolves one; the second wave must run Remote Monitoring with it and return real readings, not 'no data'."
         }
       ],
@@ -42,7 +42,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Tobias Kaur (patient ID: 12678) is taking the following two medications: * **Atorvastatin**: 20 mg at bedtime. * **Lisinopril**: 10 mg once daily.",
-          "seconds": 6.0,
+          "seconds": 5.1,
           "watch_for": "Establishes the subject for the next turn."
         },
         {
@@ -57,8 +57,8 @@
           "waves": 1,
           "findings": [],
           "actionable": true,
-          "answer": "Patient 12678's systolic blood pressure (device DEV-8770) has a mean of **144.0 mmHg** over the past 14 days, with a latest reading of **154.0 mmHg**. The trend is reported as \"flat\" in the time series but shows as \"rising\" during threshold evaluation due to recent breaches above the alert limit of 140 mmHg. Three readings have breached this threshold: - 2026-08-17T08:00:00 (value: **170.0**) - 20",
-          "seconds": 10.5,
+          "answer": "Patient 12678's systolic blood pressure (device DEV-8770) has a mean of **144.0 mmHg** over the past 14 days, with a latest reading of **154.0 mmHg**. The trend is reported as \"flat\" in the time series but flagged as \"rising\" by threshold evaluation due to recent breaches above the alert limit of 140 mmHg. Three readings have breached this threshold: - 2026-08-17T08:00:00 (value: **170.0**) - 2026",
+          "seconds": 8.2,
           "watch_for": "Names no subject at all. Must be actionable from history, and must need NO second wave - the fact is already on the board."
         }
       ],
@@ -78,7 +78,7 @@
           "findings": [],
           "actionable": false,
           "answer": "Which patient's data are you referring to?",
-          "seconds": 2.3,
+          "seconds": 2.1,
           "watch_for": "First turn of a conversation with nothing to refer back to. Memory must not make the router credulous - this still has no subject area."
         }
       ],
@@ -102,7 +102,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Tobias Kaur (patient ID: 12678) is taking the following two medications: * **Atorvastatin**: 20 mg at bedtime. * **Lisinopril**: 10 mg once daily.",
-          "seconds": 3.6,
+          "seconds": 4.7,
           "watch_for": "Subject A."
         },
         {
@@ -118,7 +118,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Patient **12789** (ID: Dana Lindqvist) has the following lab results: * **Hemoglobin A1c**: 9.9% (Effective Date: 2026-07-31, Abnormal) * **LDL cholesterol**: 88.3 mg/dL (Effective Date: 2026-07-31, Normal) * **Hemoglobin A1c**: 6.2% (Effective Date: 2026-04-22, Abnormal) * **LDL cholesterol**: 171.0 mg/dL (Effective Date: 2026-04-22, Abnormal) * **Hemoglobin A1c**: 10.1% (Effective Date: 2025-12-",
-          "seconds": 5.4,
+          "seconds": 7.0,
           "watch_for": "Subject B. The board must hold Dana's id, not Tobias's - answering turn three about the wrong patient is the failure this scoping exists to prevent."
         },
         {
@@ -134,7 +134,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Patient 12789 (ID: 12789) has one recorded device ID, DEV-3431. Their heart rate metric shows a mean of **89.8 bpm**, with a minimum of **54.4 bpm** and maximum of **116.5 bpm**. The trend is falling (-32.5 delta). The most recent reading was recorded on 2026-08-19T08:00:00 at **54.4 bpm**, which did not breach the alert threshold (above 100 bpm) as no breaches were detected in the evaluation resu",
-          "seconds": 5.8,
+          "seconds": 7.1,
           "watch_for": "Must resolve to Dana, the most recent subject."
         }
       ],
@@ -159,8 +159,8 @@
             "denial_is_coding_related"
           ],
           "actionable": true,
-          "answer": "Claim CLM-8873 was denied with reason code CO-50 because the service was deemed not medically necessary, which constitutes a non-covered service; this denial is coding-related and requires correcting the billed codes as the relevant remedy.",
-          "seconds": 7.0,
+          "answer": "Claim CLM-8873 was denied with reason code CO-50, indicating non-covered services because the service was not deemed medically necessary; this constitutes a coding denial where correcting the billed codes is the relevant remedy.",
+          "seconds": 5.6,
           "watch_for": "Retrieves the claim. Evidence is retained."
         },
         {
@@ -178,8 +178,8 @@
             "denial_is_coding_related"
           ],
           "actionable": true,
-          "answer": "The billed diagnosis I10 is confirmed as being on the patient's active problem list; however, this does not match the specific diagnoses listed in the clinical specialist's report: Hyperlipidemia (unspecified) and Essential (primary) hypertension. The denial CO-50 for claim CLM-8873 indicates that the service was deemed non-medically necessary due to a coding issue rather than a lack of coverage, ",
-          "seconds": 8.6,
+          "answer": "The billed diagnosis I10 is present on the patient's active problem list; however, this does not match the verified findings for \"Hyperlipidemia\" or other specific conditions mentioned by the Clinical specialist unless they are also coded as I10. The Clinical specialist confirmed diagnoses of Hyperlipidemia (unspecified) and Essential hypertension but did not explicitly state that these were bille",
+          "seconds": 7.6,
           "watch_for": "The claim came from turn one and the chart from turn two. The reconciler must compare across them - no single turn holds both."
         }
       ],
@@ -201,7 +201,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Audit logs of PHI access must be retained for a minimum of **6 years** and up to **7 years**.",
-          "seconds": 5.7,
+          "seconds": 4.1,
           "watch_for": "Compliance declares no needs. Even if it retrieved nothing, no fact could unblock it, so there must be no second wave."
         }
       ],
@@ -223,7 +223,7 @@
           "findings": [],
           "actionable": true,
           "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
-          "seconds": 6.4,
+          "seconds": 5.3,
           "watch_for": "Two patients share this name. Must say HOW MANY and refuse, without naming either - no MRN, no date of birth, no medication."
         },
         {
@@ -239,7 +239,7 @@
           "findings": [],
           "actionable": true,
           "answer": "MRN-217621 is taking Fluticasone/salmeterol (250/50 mcg) twice daily.",
-          "seconds": 6.8,
+          "seconds": 5.4,
           "watch_for": "An identifier alone. The held question is reissued scoped to it, so the answer is about medications - the user never retyped the question."
         }
       ],
@@ -261,7 +261,7 @@
           "findings": [],
           "actionable": true,
           "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
-          "seconds": 6.0,
+          "seconds": 5.3,
           "watch_for": "Same refusal as conv-07."
         },
         {
@@ -278,7 +278,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Samuel Ferreira is taking Fluticasone/salmeterol (250/50 mcg, twice daily).",
-          "seconds": 6.7,
+          "seconds": 5.6,
           "watch_for": "A date of birth identifies nobody alone - it narrows the name. The resumed question must search by name AND pass birth_date."
         }
       ],
@@ -300,7 +300,7 @@
           "findings": [],
           "actionable": true,
           "answer": "The tool results indicate that the name \"Samuel Ferreira\" matches two different patients. To identify which patient you are asking about, an MRN, a specific `patient_id`, or a birth date must be provided. No medication details can be reported until one of these identifiers is supplied to uniquely identify the patient.",
-          "seconds": 6.2,
+          "seconds": 5.3,
           "watch_for": "Leaves a question pending."
         },
         {
@@ -314,7 +314,7 @@
           "findings": [],
           "actionable": true,
           "answer": "Audit logs of PHI access must be retained for a minimum of **6 years** and up to **7 years**.",
-          "seconds": 6.2,
+          "seconds": 4.7,
           "watch_for": "An unrelated turn. The held question must be dropped, not answered - and must not hijack this one."
         }
       ],

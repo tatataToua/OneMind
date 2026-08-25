@@ -81,66 +81,6 @@ def _no_series(patient_id: str = "") -> dict[str, Any]:
     }
 
 
-def _configuration(metric: str = "") -> dict[str, Any]:
-    """Alert settings with nobody attached.
-
-    The answer to a question that names no patient. A threshold is
-    configuration - it belongs to a metric, not a person - but readings and
-    breaches are that person's clinical data, and the two used to come back
-    together because the only way to reach a threshold was through a device.
-
-    Observed live. Asked *"What is the current alert threshold for SpO2?"* -
-    a question about a setting, with no patient in it anywhere - the answer was:
-
-        The threshold is 92%. This applies to device DEV-1398
-        (patient_id: 13788), and their latest reading was 86%, which breached it.
-
-    Nobody asked about 13788. They owned the first matching device, and a
-    general question turned into a disclosure that a specific person is
-    hypoxaemic. `fhir` already refuses to enumerate the store on a miss; this
-    was the same enumeration arriving through a hit.
-
-    Rows are grouped by the settings themselves rather than by metric, so a
-    metric configured two ways reports two rows instead of one confident wrong
-    number. `device_count` says how many, never which - the same line the
-    ambiguous-name refusal draws.
-    """
-    rows = _devices_for(metric=metric)
-    if not rows:
-        return _no_series()
-
-    grouped: dict[tuple[Any, ...], dict[str, Any]] = {}
-    for device in rows:
-        key = (
-            device["metric"],
-            device["unit"],
-            device["alert_threshold"],
-            device["alert_direction"],
-        )
-        entry = grouped.setdefault(
-            key,
-            {
-                "metric": device["metric"],
-                "unit": device["unit"],
-                "alert_threshold": device["alert_threshold"],
-                "alert_direction": device["alert_direction"],
-                "device_count": 0,
-            },
-        )
-        entry["device_count"] += 1
-
-    return {
-        "found": True,
-        "scope": "configuration",
-        "thresholds": sorted(grouped.values(), key=lambda e: (e["metric"], e["alert_threshold"])),
-        "detail": (
-            "alert configuration only. Report the threshold and its direction. "
-            "Readings, trends and breaches belong to a patient - supply a "
-            "patient_id to retrieve those. Do not name any patient or device here."
-        ),
-    }
-
-
 def _devices_for(patient_id: str = "", metric: str = "") -> list[dict[str, Any]]:
     rows = store.devices()
     if patient_id:
@@ -173,9 +113,6 @@ def _devices_for(patient_id: str = "", metric: str = "") -> list[dict[str, Any]]
 def telemetry_series(patient_id: str = "", metric: str = "", days: int = 14) -> dict[str, Any]:
     if patient_id and not store.is_patient_id(patient_id):
         return _not_an_identifier(patient_id)
-    # A question that names no patient gets settings, not somebody's readings.
-    if not patient_id:
-        return _configuration(metric)
     targets = _devices_for(patient_id, metric)
     if not targets:
         return _no_series(patient_id)
@@ -243,10 +180,6 @@ def telemetry_series(patient_id: str = "", metric: str = "", days: int = 14) -> 
 def evaluate_thresholds(patient_id: str = "", metric: str = "", days: int = 7) -> dict[str, Any]:
     if patient_id and not store.is_patient_id(patient_id):
         return _not_an_identifier(patient_id)
-    # A breach is a fact about a person, so there is nothing to evaluate until
-    # one is named. The configuration still answers "what is the threshold".
-    if not patient_id:
-        return _configuration(metric)
     series = telemetry_series(patient_id=patient_id, metric=metric, days=days)
     if not series.get("found"):
         return series

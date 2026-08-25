@@ -107,7 +107,7 @@ OLLAMA_NUM_PARALLEL=4     # one slot per specialist, so fan-out is real
 
 ```bash
 cd backend
-uv run pytest                              # 211 tests, offline, no model needed
+uv run pytest                              # 207 tests, offline, no model needed
 uv run python ../evals/run_eval.py         # routing accuracy, needs Ollama
 uv run python ../evals/conversations.py    # memory + two-wave dispatch, needs Ollama
 uv run python ../evals/phi_leak.py         # adversarial PHI extraction, needs Ollama
@@ -265,11 +265,6 @@ Stated plainly, because a reviewer will find them anyway.
   has to: mint a fresh one at turn three and `PHI_PATIENT_1` stops meaning the
   same person. It stays in memory, never reaches disk, and is evicted on an idle
   timer — but it is a longer window than before.
-- **A question that names no patient gets configuration, not a record.** Asking
-  for an alert threshold returns the threshold, its direction, and how many
-  devices use it — never which device or whose. Readings, trends and breaches
-  are that person's clinical data and need a patient id. The same rule as the
-  shared-name refusal: how many, never which.
 - **Specialists still cannot negotiate.** A blocked specialist reports that it is
   blocked. It cannot ask another for what it needs; the orchestrator either
   happens to hold the missing identifier or it does not.
