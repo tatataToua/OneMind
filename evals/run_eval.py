@@ -111,6 +111,30 @@ async def run_arm(arm: Arm, rows: list[dict], repeat: int) -> ArmResult:
     return result
 
 
+async def run_all(
+    names: tuple[str, ...], rows: list[dict], repeat: int, provider: object
+) -> dict[str, ArmResult]:
+    """Every arm inside one event loop.
+
+    Not a stylistic choice. `OllamaProvider` builds its `httpx.AsyncClient` once
+    and reuses it, and a pooled connection belongs to the loop that opened it.
+    Calling `asyncio.run` per arm closes that loop under the client, and the
+    second arm dies on `RuntimeError: Event loop is closed` roughly nine minutes
+    into the run - after the first arm has already printed a clean table, which
+    is a memorable way to lose half an evaluation.
+    """
+    results: dict[str, ArmResult] = {}
+    try:
+        for name in names:
+            arm = build_arm(name, provider, registry)  # type: ignore[arg-type]
+            results[name] = await run_arm(arm, rows, repeat)
+    finally:
+        aclose = getattr(provider, "aclose", None)
+        if aclose is not None:
+            await aclose()
+    return results
+
+
 def score(result: ArmResult, *, model: str, cases: int, repeat: int) -> dict:
     """Turn observations into the report. Shared by both arms, on purpose."""
     exact: Counter = Counter()
@@ -297,6 +321,11 @@ def render_comparison(reports: dict[str, dict]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repeat", type=int, default=1, help="runs per case")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="only the first N cases - for smoke-testing the harness, not for reporting",
+    )
     parser.add_argument("--json", type=Path, help="write the full report here")
     parser.add_argument(
         "--arm",
@@ -313,15 +342,17 @@ def main() -> int:
     args = parser.parse_args()
 
     rows = load(DATASET)
+    if args.limit:
+        rows = rows[: args.limit]
     provider = build_provider()
     model = getattr(provider, "name", "unknown")
     wanted = ARMS if args.arm == "both" else (args.arm,)
 
+    results = asyncio.run(run_all(wanted, rows, args.repeat, provider))
+
     reports: dict[str, dict] = {}
     for name in wanted:
-        arm = build_arm(name, provider, registry)
-        result = asyncio.run(run_arm(arm, rows, args.repeat))
-        reports[name] = score(result, model=model, cases=len(rows), repeat=args.repeat)
+        reports[name] = score(results[name], model=model, cases=len(rows), repeat=args.repeat)
         render(reports[name])
 
     if len(reports) > 1:

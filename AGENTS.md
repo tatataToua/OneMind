@@ -11,10 +11,12 @@ A healthcare multi-agent orchestrator: routes a request to the specialists that 
 - Design decisions with the evidence behind them: `docs/decisions.md` — read before changing routing, PHI, or synthesis behavior.
 - Why the four specialists map to OneData's healthcare line: `docs/company-research.md`
 - Routing evaluation: `evals/run_eval.py`, dataset `evals/datasets/routing.jsonl`
+- Whether the orchestration earns its keep: `evals/arms.py` holds both architectures; `--arm both` scores them with one function. Fairness invariants are pinned offline in `backend/tests/test_eval_arms.py`.
+- CI (`.github/workflows/ci.yml`) runs the offline suite and the frontend typecheck only. Evals need a live model and are run by hand; their reports are committed.
 
 ## Running and verifying
 
-- No Makefile; `run.ps1` is the task runner (`./run.ps1 test|eval|demo|check`) — `make` isn't available on this dev machine.
+- No Makefile; `run.ps1` is the task runner (`./run.ps1 test|eval|conv|compare|demo|check`) — `make` isn't available on this dev machine.
 - `evals/run_eval.py` needs Ollama serving `qwen3.5:4b` locally; `backend/tests/` runs fully offline against `StubProvider` and needs neither Ollama nor a model.
 
 ## Conventions that differ from defaults

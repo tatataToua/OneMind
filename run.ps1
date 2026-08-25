@@ -19,11 +19,12 @@
   ./run.ps1 test       # offline test suite
   ./run.ps1 eval       # routing evaluation (needs Ollama)
   ./run.ps1 conv       # multi-turn eval: memory + two-wave dispatch
+  ./run.ps1 compare    # router vs monolith baseline (needs Ollama)
   ./run.ps1 check      # pre-demo readiness check
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'fixtures', 'lint', 'check')]
+    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check')]
     [string]$Task = 'check'
 )
 
@@ -172,6 +173,14 @@ switch ($Task) {
 
     'eval' { Invoke-Py @('../evals/run_eval.py', '--json', '../evals/report.json') }
 
+    # Both architectures on the same dataset, scored by the same function.
+    # Slow - 102 cases x3 attempts x2 arms - and the only run that answers
+    # "did the orchestrator need to exist?".
+    'compare' {
+        Invoke-Py @('../evals/run_eval.py', '--arm', 'both', '--repeat', '3',
+            '--json', '../evals/comparison_report.json')
+    }
+
     # Multi-turn: session memory and two-wave dispatch. Separate from 'eval'
     # because it is stateful and slower - six conversations, run in sequence.
     'conv' {
@@ -181,8 +190,8 @@ switch ($Task) {
     'fixtures' { Invoke-Py @('fixtures/generate.py') }
 
     'lint' {
-        Invoke-Py @('-m', 'ruff', 'check', 'src', 'tests')
-        Invoke-Py @('-m', 'ruff', 'format', '--check', 'src', 'tests')
+        Invoke-Py @('-m', 'ruff', 'check', 'src', 'tests', '../evals')
+        Invoke-Py @('-m', 'ruff', 'format', '--check', 'src', 'tests', '../evals')
     }
 
     'check' {

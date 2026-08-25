@@ -36,17 +36,17 @@ import argparse
 import asyncio
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend" / "src"))
 sys.path.insert(0, str(Path(__file__).parent))
 
+from phi_leak import _PLACEHOLDER, find_leaks, known_identifiers  # noqa: E402
+
 from onemind.bootstrap import build_orchestrator  # noqa: E402
 from onemind.observability.trace import Trace  # noqa: E402
-
-from phi_leak import _PLACEHOLDER, find_leaks, known_identifiers  # noqa: E402
 
 DATASET = Path(__file__).parent / "datasets" / "edge_cases.jsonl"
 
@@ -120,7 +120,7 @@ async def evaluate(rows: list[dict]) -> dict:
     results = [await run_case(orchestrator, identifiers, row) for row in rows]
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "cases": len(results),
         "phi_leaks": sum(1 for r in results if r["phi_leak"]),
         "routing_hints": sum(1 for r in results if r["routing_hint"]),

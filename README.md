@@ -1,5 +1,7 @@
 # OneMind
 
+[![CI](https://github.com/tatataToua/OneMind/actions/workflows/ci.yml/badge.svg)](https://github.com/tatataToua/OneMind/actions/workflows/ci.yml)
+
 A healthcare multi-agent orchestrator. It routes a request to the specialists
 that own the relevant data, runs them in parallel, and returns one cited answer
 — with PHI redacted before any of it reaches the model.
@@ -111,7 +113,15 @@ uv run pytest                              # 211 tests, offline, no model needed
 uv run python ../evals/run_eval.py         # routing accuracy, needs Ollama
 uv run python ../evals/conversations.py    # memory + two-wave dispatch, needs Ollama
 uv run python ../evals/phi_leak.py         # adversarial PHI extraction, needs Ollama
+
+# does the orchestration earn its keep? both architectures, one scorer
+uv run python ../evals/run_eval.py --arm both --repeat 3
 ```
+
+The offline suite and the frontend typecheck run in CI on every push. The evals
+are not in CI on purpose: they measure a live 4B model, and a green check that
+depends on the weather is worse than no check. They are run by hand and their
+reports are committed, so every number below is checkable rather than asserted.
 
 Multi-turn evaluation, nine scripted conversations against `qwen3.5:4b`:
 **9/9 pass** — two-hop resolution in a single turn, follow-ups that name no
@@ -149,6 +159,7 @@ and some noise.
 | `backend/src/onemind/orchestrator/registry.py` | Adding a fifth specialist is one entry |
 | `backend/src/onemind/llm/bedrock.py` | The production path — same protocol, Bedrock instead of Ollama |
 | `evals/run_eval.py` | How routing is measured rather than asserted |
+| [`evals/arms.py`](evals/arms.py) | The baseline the architecture is measured against, and why it is not a strawman |
 
 ---
 

@@ -490,3 +490,214 @@ both were visible in the same broken answer:
   first relaxation is real and deliberate: an identifier the request names is
   no longer checked, because this guard reports what the *model* invented, and
   a value the user typed is not that.
+
+---
+
+## 21. Facts travel between specialists as placeholders, never as values
+
+**Decision.** The blackboard that carries identifiers from one specialist to
+another holds redaction tokens. `clinical.fhir_search_patient` resolves a
+patient, and what lands on the board is `PHI_PATIENT_2` — registered with the
+session on the way in — not `12345`.
+
+**Why.** This is the decision the whole two-wave feature rests on, and it is
+easy to get backwards. The obvious implementation stores what the tool
+returned. That implementation puts a real medical record number into wave two's
+planning prompt, and #4 exists precisely to guarantee that never happens.
+
+The trap is that the value arrives already un-redacted, legitimately.
+`redact_json` does not tokenise a `patient_id` field, because `_PATIENT_ID`
+requires a patient-ish word adjacent to the digits:
+
+```python
+r"\b(patient|member|subscriber|pt\.?)\s+(?:id\s*)?#?\s*(\d{4,6})\b"
+```
+
+Serialised FHIR reads `"patient_id": "12345"`, and the `_id": "` between word
+and digits does not match. That is correct for tool output a specialist quotes
+back to itself. It is catastrophic the moment that output becomes input to a
+second model call. A guardrail that holds on every path except the new one is
+not a guardrail.
+
+So extraction registers the value before storing it:
+
+```python
+token = session.tokenize("PATIENT", "12345")   # -> "PHI_PATIENT_2"
+facts.set("patient_id", token, source="clinical.fhir_search_patient")
+```
+
+**What this buys, and the part worth noticing.** The model sees a placeholder,
+as it does everywhere else. `rehydrate_args` converts it back at the tool call,
+on the path that already existed. And `_is_grounded` **needed no change at
+all** — it already accepts any value that rehydration alters, so a
+fact-derived identifier passes for the same reason a user-supplied one does.
+
+**Why not widen the grounding check instead.** That was the earlier draft: teach
+`_is_grounded` that fact-derived values are acceptable. It works, and it costs
+the one guarantee that guard has — that it has never been relaxed. Every
+subsequent reader would have to evaluate whether the exemption was still safe.
+Working in redaction space deletes the change *and* the argument needed to
+defend it. Rejected in favour of doing nothing.
+
+**Cost.** Extraction is declared per tool rather than per specialist, so a tool
+that yields an identifier and forgets to say so contributes nothing to the
+board and the hop silently fails. Only `patient_id` and `mrn` are declared
+today.
+
+---
+
+## 22. The second wave is a set intersection, and the cap is a counter
+
+**Decision.** After fan-in, a specialist that reported itself `blocked` is
+re-dispatched if its declared `needs` overlap the facts now on the board.
+Maximum two waves, enforced by an integer in `OrchestratorState`.
+
+**Why in code rather than by a model.** Whether to retry is a set intersection:
+
+```python
+retry = [
+    r.agent for r in results
+    if r.blocked and set(specs[r.agent].needs) & facts.keys()
+]
+```
+
+The codebase already draws this line twice — arithmetic lives in tools (#12),
+cross-plane joins are computed rather than reasoned (#20). Dispatch is the same
+kind of decision: it has a right answer that does not require judgement, and
+asking a 4B model for it buys nothing but a round trip and a trace that records
+a rationale where it could have recorded a fact. The `MEMORY` span names the
+literal identifier that unblocked the retry — `unblocked_by:
+clinical.patient_id` — which is what an audit reader needs.
+
+**Why the cap is a counter and not a limit the model respects.** Two waves
+maximum, structurally. There is no prompt that talks the system into a third,
+because nothing is asked. A three-hop question fails, and it fails visibly.
+This is the honest version: a judgement-based cap stretches under pressure from
+exactly the input you would least like it to stretch for.
+
+**Why not agent-to-agent messaging.** Letting Remote Monitoring ask Clinical for
+a patient id is the textbook answer and it dissolves #1. The data-plane
+exclusivity that makes routing decidable only holds while specialists cannot
+reach each other; the moment they negotiate, two of them can answer the same
+question and the router has no basis to choose. It also reintroduces the
+unbounded dialogue that the single planning round exists to prevent. The
+blackboard moves the same information without either cost.
+
+**Why not a LangGraph checkpointer.** Also the textbook answer, and it fights
+the state it would persist: `results` is `Annotated[list, operator.add]`, so
+carrying it across turns appends turn two's results to turn one's forever. The
+reset logic required is larger than the store it would replace.
+
+**A correction found in testing.** `blocked` needed a second definition. The
+first version set it only where no usable call was selected, which missed the
+case that actually occurs: a call runs, filters on a name the plane cannot
+resolve, matches nothing, and reports *"no monitored device for this patient"*
+— a statement about the argument wearing the clothes of a statement about the
+patient. Telemetry and claims now refuse with `invalid_key` rather than
+returning empty, because a refusal earns a second wave and a silent empty
+result does not.
+
+**Cost.** Only declared facts travel, and only registered `needs` trigger a
+retry. An unanticipated hop fails exactly as it did before the feature existed.
+That is a smaller improvement than "the system now handles multi-hop
+questions", and it is the one that is true.
+
+---
+
+## 23. Memory lives in the process, and what is remembered is not what is prompted
+
+**Decision.** A conversation is held in memory, keyed by a server-minted id,
+evicted on an idle timer, never written to disk. The store keeps the whole
+session; almost none of it reaches a prompt.
+
+**Why the server mints the id.** A client-chosen session id means guessing
+someone else's id hands you their redaction vocabulary — the mapping from
+`PHI_PATIENT_1` to a real person. The first request omits it, the `done` event
+returns it, subsequent requests echo it. The frontend holds it in a `useRef`
+rather than `localStorage`, so a refresh drops it and the orphaned session
+expires on its own.
+
+**Why remembering and prompting are separate questions.** `ollama_num_ctx` is
+16384 and a specialist's answer prompt already carries up to 12000 characters
+of tool output. A naive transcript-in-the-prompt design runs out of context on
+turn four. So each consumer gets the narrowest thing that does its job:
+
+| Consumer | Receives | Why |
+|---|---|---|
+| Router | last 3 turns, compact | resolving *"her"* is a routing problem |
+| Specialist | Facts only | needs identifiers, not narrative |
+| Synthesiser | current turn only | unchanged |
+
+Specialists never see history at all. Their prompts are the same size on turn
+twelve as on turn one, and Facts is a handful of key–value pairs that does not
+grow with turn count. The router's history block is labelled as context and
+never as the request, and the instruction to route only the latest message is
+repeated *after* the transcript, where it is the last thing read — a 4B model
+handed a bare transcript will cheerfully route the previous question again.
+
+**A correction found in testing.** Memory outranked an explicit instruction:
+with history in the prompt, the model would answer from the transcript rather
+than route the new turn. Position, not emphasis, was the fix.
+
+**Concurrency.** Two requests on one session id would both mutate the same
+`PHISession` mid-redaction. Each turn takes the conversation's `asyncio.Lock`.
+Three lines, and it removes a class of bug that is miserable to reproduce.
+
+**Cost, and it is a real one.** The redaction vocabulary now lives for a
+conversation rather than a request. It has to — mint a fresh one at turn three
+and `PHI_PATIENT_1` stops meaning the same person, which breaks every
+cross-turn reference the feature exists to support. It stays in memory and is
+evicted on an idle timer, but it is a longer-lived window than before, and that
+is a genuine widening of the trust boundary rather than a neutral refactor.
+
+---
+
+## 24. A shared name is refused with a count, never a candidate list
+
+**Decision.** A name-only lookup matching several patients reports *how many*
+and stops. It never reports *which*. Supplying an MRN, a patient id, or a date
+of birth on the next turn reissues the original question.
+
+**Why not show the matches.** This is the decision in the project I would most
+want to be asked about. Listing the candidates — names, MRNs, birth dates — is
+a disclosure about people the asker has established no business with.
+Enumerating three patients called Samuel Ferreira to someone who asked about
+one of them is the same disclosure as letting them browse the patient store,
+arrived at politely. A real EHR does show that picker; it shows it behind
+authentication, to a user whose access to those records is already established.
+This system has no authentication, so it does not get the picker. `conv-07`
+asserts the refusal contains neither twin's MRN nor either birth year.
+
+A count is disclosed because it is what the asker needs in order to understand
+the refusal and know what would resolve it. "Two patients share that name" is
+information about the *query*; a list is information about *people*.
+
+**Why the held question resumes rather than being retyped.** The blocked
+question stays on the conversation and `orchestrator/disambiguate.py` resumes
+it when the next turn supplies exactly one identifier — you type `MRN-217621`,
+not the whole question again. Deterministic throughout; no model call decides
+any of it. A turn carrying two identifiers, or one that asks something of its
+own, is treated as a new request and the held question is dropped rather than
+answered over the top of it.
+
+**Why capability decides who refuses.** Separate `patient_id`, `mrn` and `name`
+fields tell a model what each means; they cannot make it comply, and the plan
+is fixed in one round with no chance to observe a complaint and retry. The live
+model kept putting names in `patient_id` regardless. So the rule is capability,
+not policy: `store.match_patients` **repairs** — digits to `patient_id`, `MRN-`
+to `mrn`, anything else to `name` — because that plane *can* resolve a name, so
+the honest reading of `patient_id="Samuel Ferreira"` is a name search. Telemetry
+and claims **refuse**, because they hold no way to resolve a person from a name.
+`Router._normalise` (#2) set the precedent for repairing output that satisfies
+the schema but not the intent.
+
+**A correction found in testing.** An earlier phrasing appended the date of
+birth parenthesised — `"... taking? (date of birth PHI_DOB_1)"` — and the
+planner dutifully searched for a patient *called* `1957-03-18`. Naming the
+argument is what makes it land. `name` also joined `_must_be_grounded`: a
+fabricated name selects the wrong person as effectively as a fabricated id, and
+looks more like something the user said.
+
+**Cost.** One subject at a time. Facts follow the most recently resolved
+patient, and naming a different one drops the previous one's identifiers. A
+question genuinely spanning two patients is not supported.

@@ -44,7 +44,6 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend" / "src"))
@@ -199,18 +198,16 @@ def render(report: dict) -> None:
     print(f"  FAILURES ({len(failures)})")
     for r in failures:
         print(f"    {r['id']:<10} patient {r['patient_id']}")
+        pad = " " * 15
         if r["inbound_leak_kinds"]:
-            print(
-                f"               inbound leak:  {', '.join(r['inbound_leak_kinds'])} reached the model"
-            )
+            kinds = ", ".join(r["inbound_leak_kinds"])
+            print(f"{pad}inbound leak:  {kinds} reached the model")
         if r["audit_leak_kinds"]:
-            print(
-                f"               audit leak:    {', '.join(r['audit_leak_kinds'])} reached the trace"
-            )
+            kinds = ", ".join(r["audit_leak_kinds"])
+            print(f"{pad}audit leak:    {kinds} reached the trace")
         if r["token_leak_count"]:
-            print(
-                f"               token leak:    {r['token_leak_count']} un-rehydrated placeholder(s) in the answer"
-            )
+            n = r["token_leak_count"]
+            print(f"{pad}token leak:    {n} un-rehydrated placeholder(s) in the answer")
         print(f"               prompt: {r['prompt'][:70]}")
     print()
 

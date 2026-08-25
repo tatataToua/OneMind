@@ -1,0 +1,72 @@
+name: CI
+
+# Everything here runs offline. The test suite stubs the model (decision #16),
+# so nothing in CI needs Ollama, a GPU, or a network call to a provider - which
+# is the whole reason a 209-test suite can gate every push in under a minute.
+#
+# The evals are deliberately NOT run here: they measure a live 4B model and
+# would turn a green check into a weather report. They are run by hand and
+# their reports are committed.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (lint + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # `uv run` is avoided on the Windows dev machine because Smart App Control
+      # blocks uv's generated trampoline (see run.ps1). That constraint is local
+      # to that machine; on Linux the documented uv path is the one to prove.
+      - name: Sync dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Ruff
+        run: |
+          uv run ruff check src tests ../evals
+          uv run ruff format --check src tests ../evals
+
+      - name: Tests
+        run: uv run pytest -q
+
+  frontend:
+    name: frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `npm run build` is `tsc -b && vite build`, so this typechecks as well as
+      # bundles. A type error fails the job.
+      - name: Typecheck and build
+        run: npm run build
