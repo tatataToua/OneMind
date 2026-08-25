@@ -51,4 +51,16 @@ Each one cost a session real time.
   `httpx.AsyncClient` and reuses it, and a pooled connection belongs to the loop that
   opened it. A second `asyncio.run` dies on `RuntimeError: Event loop is closed` —
   and in an eval harness it dies *after* the first phase printed a clean table.
-  `evals/run_eval.py:run_all` is the shape to copy.
+  `evals/run_eval.py:run_all` is the shape to copy. Every other eval script calls
+  `asyncio.run` exactly once from `main()` and builds what it needs inside that loop
+  (`conversations.py` constructs a fresh orchestrator per case in `run_case`), which
+  is safe as written but would break the moment one is split into phases.
+- **A failed `git stash pop` has not eaten your work.** `pop` restores untracked files
+  *before* tracked ones and aborts the whole apply if any already exist — leaving the
+  untracked files back and every tracked change still stashed, which looks exactly
+  like the changes vanished. They have not: `pop` keeps the entry on failure. Lift
+  files out individually with `git checkout stash@{0} -- <path>`, and check direction
+  per file with `git diff stash@{0} -- <path>` rather than assuming the stash is older
+  than the working tree. With several sessions editing during the operation, some
+  files need the stashed version and others need the working-tree one; assuming a
+  single direction for all of them is how `.gitignore` nearly got clobbered.
