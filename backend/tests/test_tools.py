@@ -245,10 +245,19 @@ def test_policy_search_handles_a_stopword_only_query() -> None:
 def test_threshold_direction_is_honoured() -> None:
     """SpO2 alerts on a floor breach. Testing everything against an upper bound
     reports healthy oxygen saturation as an alert and misses real hypoxaemia -
-    the model caught this before the tests did."""
-    result = evaluate_thresholds()
-    by_metric = {row["metric"]: row for row in result["evaluations"]}
+    the model caught this before the tests did.
 
+    Evaluated per patient, because an unscoped call now returns configuration
+    rather than everyone's readings. That is the point of the change, and the
+    direction logic is just as checkable one chart at a time.
+    """
+    by_metric: dict[str, dict[str, Any]] = {}
+    for patient_id in sorted({d["patient_id"] for d in store.devices()}):
+        result = evaluate_thresholds(patient_id=patient_id)
+        for row in result.get("evaluations", []):
+            by_metric.setdefault(row["metric"], row)
+
+    assert "spo2" in by_metric, "fixtures must monitor SpO2 somewhere"
     spo2 = by_metric["spo2"]
     assert spo2["alert_direction"] == "below"
     for reading in spo2["breaching_readings"]:
@@ -259,6 +268,32 @@ def test_threshold_direction_is_honoured() -> None:
             continue
         for reading in row["breaching_readings"]:
             assert reading["value"] > row["threshold"], metric
+
+
+def test_an_unscoped_question_gets_configuration_not_a_patient() -> None:
+    """Asked "what is the alert threshold for SpO2" - a question about a setting
+    with no patient in it - the answer used to name the first device that
+    matched, its owner, and their latest reading."""
+    result = telemetry_series(metric="spo2")
+    assert result["found"] is True
+    assert result["scope"] == "configuration"
+
+    row = next(r for r in result["thresholds"] if r["metric"] == "spo2")
+    assert row["alert_threshold"] == 92
+    assert row["alert_direction"] == "below"
+    assert row["device_count"] >= 1
+
+    blob = str(result)
+    assert "DEV-" not in blob, "a device id identifies a patient by proxy"
+    assert not any(d["patient_id"] in blob for d in store.devices())
+    assert "readings" not in result
+
+
+def test_breaches_are_not_evaluated_without_a_patient() -> None:
+    """A breach is a fact about a person. The threshold still comes back."""
+    result = evaluate_thresholds(metric="spo2")
+    assert result["scope"] == "configuration"
+    assert "evaluations" not in result
 
 
 def test_series_reports_trend_and_window() -> None:
