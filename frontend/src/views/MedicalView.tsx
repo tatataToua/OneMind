@@ -1,39 +1,24 @@
 /**
  * The clinician-facing tab.
  *
- * Everything here answers "can I act on this?" - the answer, what was computed
- * rather than written, what the system refuses to vouch for, and where each
- * claim came from. Timings, span ids, payloads and the state of each data
- * plane belong to the Developer tab; putting them here would make a clinical
- * read harder, not more transparent.
+ * Everything here answers "can I act on this?" - the answer, what the system
+ * refuses to vouch for, and what the conversation is currently scoped to.
+ * Timings, span ids, payloads, the computed cross-plane comparisons and the
+ * state of each data plane belong to the Developer tab; putting them here
+ * would make a clinical read harder, not more transparent.
  */
 
 import { useEffect, useRef, useState } from "react";
-import type { Finding } from "../api";
 import { Markdown } from "../markdown";
 import type { Orchestrator } from "../useOrchestrator";
 import {
   IconAlert,
-  IconCheck,
   IconDatabase,
-  IconMinus,
-  IconQuestion,
   IconSend,
   IconShield,
   IconStop,
   IconTag,
 } from "../icons";
-
-// A finding's verdict decides how it reads, not just how it looks: "mismatch"
-// is a problem the user must act on, "match" is a clean result, and the two
-// inconclusive verdicts must never be mistaken for either.
-const VERDICT: Record<string, { label: string; tone: string; Icon: typeof IconCheck }> = {
-  match: { label: "Match", tone: "ok", Icon: IconCheck },
-  mismatch: { label: "Mismatch", tone: "danger", Icon: IconAlert },
-  applicable: { label: "Applies", tone: "warn", Icon: IconAlert },
-  not_applicable: { label: "Not applicable", tone: "mute", Icon: IconMinus },
-  insufficient_evidence: { label: "Not compared", tone: "mute", Icon: IconQuestion },
-};
 
 export default function MedicalView({ o }: { o: Orchestrator }) {
   const [prompt, setPrompt] = useState("");
@@ -98,17 +83,29 @@ export default function MedicalView({ o }: { o: Orchestrator }) {
           </div>
         </form>
 
-        <div className="starters" role="group" aria-label="Example requests">
+        {/* These load the composer rather than submitting. An example is a
+            starting point - the useful demo is editing one to name a different
+            patient, and sending on click took that away and spent ninety
+            seconds of inference on a question nobody had finished asking. */}
+        <div className="starters" role="group" aria-label="Example requests. Loads the box for editing.">
           {o.examples.map((example) => (
             <button
               key={example.label}
               type="button"
               className="starter"
-              title={example.expect}
+              title={`${example.expect} — loads the box for editing; press Send to run it.`}
               disabled={o.busy}
               onClick={() => {
                 setPrompt(example.prompt);
-                send(example.prompt);
+                // Focus and drop the caret at the end so the example is
+                // immediately editable, not merely visible.
+                const el = box.current;
+                if (el) {
+                  el.focus();
+                  requestAnimationFrame(() => {
+                    el.selectionStart = el.selectionEnd = el.value.length;
+                  });
+                }
               }}
             >
               {example.label}
@@ -149,20 +146,6 @@ export default function MedicalView({ o }: { o: Orchestrator }) {
                 <span className="caret" />
               )}
             </div>
-
-            {o.outcome && o.outcome.findings?.length > 0 && (
-              <section className="block block-computed">
-                <h3>
-                  <IconCheck size={14} />
-                  Computed from the retrieved records
-                </h3>
-                <ul className="findings">
-                  {o.outcome.findings.map((f) => (
-                    <FindingRow key={f.check + ":" + f.provenance} finding={f} />
-                  ))}
-                </ul>
-              </section>
-            )}
 
             {o.outcome && o.outcome.unverified?.length > 0 && (
               <section className="block block-unverified">
@@ -248,24 +231,6 @@ export default function MedicalView({ o }: { o: Orchestrator }) {
   );
 }
 
-function FindingRow({ finding }: { finding: Finding }) {
-  const v = VERDICT[finding.verdict] ?? {
-    label: finding.verdict,
-    tone: "mute",
-    Icon: IconQuestion,
-  };
-  return (
-    <li className={"finding tone-" + v.tone}>
-      <span className="verdict">
-        <v.Icon size={13} />
-        {v.label}
-      </span>
-      <p className="finding-statement">{finding.statement}</p>
-      <code className="provenance">{finding.provenance}</code>
-    </li>
-  );
-}
-
 function EmptyState() {
   return (
     <div className="empty">
@@ -273,10 +238,10 @@ function EmptyState() {
       <h2>Ask across four data planes at once</h2>
       <p>
         A request is masked, routed to the specialists that own the relevant records, run in
-        parallel, and returned as one cited answer. Cross-plane comparisons are computed in code, so
-        the part you act on is not the part the model wrote.
+        parallel, and returned as one cited answer. Anything the retrieved records do not back is
+        flagged rather than left to read as fact.
       </p>
-      <p className="fine">Pick a starter above, or type a request.</p>
+      <p className="fine">Pick a starter above to load it, then edit and send.</p>
     </div>
   );
 }

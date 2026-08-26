@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import MedicalView from "./views/MedicalView";
 import DeveloperView from "./views/DeveloperView";
 import { useOrchestrator } from "./useOrchestrator";
-import { IconFlow, IconPulse, IconShield } from "./icons";
+import { IconFlow, IconMedicalCross, IconPulse, IconShield } from "./icons";
 
 type Tab = "medical" | "developer";
 
@@ -46,7 +46,9 @@ export default function App() {
 
       <header className="topbar">
         <div className="brand">
-          <span className="mark" aria-hidden />
+          <span className="mark" aria-hidden>
+            <IconMedicalCross size={24} />
+          </span>
           <div className="brand-text">
             <strong>OneMind</strong>
             <span>Clinical multi-agent assistant</span>

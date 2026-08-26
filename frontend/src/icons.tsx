@@ -4,7 +4,7 @@
  * Two reasons, both of which this project has to be able to defend: the app
  * makes a point of running with no network calls, and an icon dependency is
  * the kind of thing that quietly adds a CDN font or a 200kB tree-shake
- * problem. Eleven paths cost less than either.
+ * problem. Twelve paths cost less than either.
  *
  * All are 24x24, stroke 1.75, currentColor - so an icon inherits the colour of
  * whatever it sits in and needs no per-use styling.
@@ -69,33 +69,11 @@ export const IconStop = (p: IconProps) => (
   </Svg>
 );
 
-export const IconCheck = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="m8.4 12.2 2.4 2.4 4.8-5" />
-  </Svg>
-);
-
 export const IconAlert = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 4.5 2.8 20h18.4z" />
     <path d="M12 10v4" />
     <path d="M12 17.2h.01" />
-  </Svg>
-);
-
-export const IconMinus = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M8.5 12h7" />
-  </Svg>
-);
-
-export const IconQuestion = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M9.7 9.6a2.4 2.4 0 1 1 3.2 2.3c-.6.2-.9.8-.9 1.4v.4" />
-    <path d="M12 16.7h.01" />
   </Svg>
 );
 
@@ -133,4 +111,36 @@ export const IconCpu = (p: IconProps) => (
     <rect x="10" y="10" width="4" height="4" rx="1" />
     <path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21" />
   </Svg>
+);
+
+/**
+ * The brand mark: a medical cross, drawn as two overlapping rounded bars.
+ *
+ * Original geometry rather than a traced logo, and filled rather than stroked -
+ * everything else in this file is 1.75-weight line art sized for 14-16px, which
+ * looks thin and incidental blown up to logotype size on the gradient tile.
+ *
+ * Two bars instead of one cross-shaped path so the arms can carry different
+ * opacities: the vertical sits at 0.9 and the intersection reads a shade
+ * brighter where they overlap, which gives the mark some depth without adding
+ * a second colour it would have to coordinate with the tile behind it.
+ *
+ * Deliberately NOT a white cross on red. That specific combination is the Red
+ * Cross emblem, protected by the Geneva Conventions and national law in most
+ * countries - a genuine legal problem rather than a taste one, and an easy
+ * thing to walk into when the brief is "make it look medical".
+ */
+export const IconMedicalCross = ({ size = 22, ...rest }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    focusable="false"
+    {...rest}
+  >
+    <rect x="2.4" y="9.3" width="19.2" height="5.4" rx="2.5" opacity="0.9" />
+    <rect x="9.3" y="2.4" width="5.4" height="19.2" rx="2.5" />
+  </svg>
 );
