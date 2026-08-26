@@ -1,10 +1,10 @@
 /**
  * The developer tab: one request, end to end.
  *
- * Three readings of the same trace, most abstract first. The flow spine says
- * which stages ran and what each one decided. The waterfall says when, and is
- * the only place the parallelism is visible as overlap rather than as a claim.
- * The inspector says exactly what a single span recorded.
+ * Three readings of the same trace, most abstract first. The graph says what
+ * the architecture is and which of its paths this request took. The waterfall
+ * says when, and is the only place the parallelism is visible as overlap rather
+ * than as a claim. The inspector says exactly what a single span recorded.
  *
  * Nothing here is synthesised for display - every number comes from a span the
  * backend emitted, because this view doubles as the audit read.
@@ -12,9 +12,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Span } from "../api";
-import { buildPipeline, depths, isGuardBlock, type Stage, type StageStatus } from "../pipeline";
+import { buildGraph, depths, isGuardBlock } from "../graph";
+import { explainGuardrail } from "../guardrails";
+import type { GuardrailNote } from "../guardrails";
 import type { Orchestrator } from "../useOrchestrator";
-import { IconAlert, IconChevron, IconClock, IconCpu, IconFlow } from "../icons";
+import { IconAlert, IconClock, IconCpu, IconFlow } from "../icons";
+import FlowGraph from "./FlowGraph";
 
 const KIND_LABEL: Record<string, string> = {
   guardrail: "guardrail",
@@ -26,19 +29,13 @@ const KIND_LABEL: Record<string, string> = {
   memory: "memory",
 };
 
-const STATUS_LABEL: Record<StageStatus, string> = {
-  pending: "waiting",
-  running: "running",
-  ok: "ok",
-  error: "flagged",
-  skipped: "skipped",
-};
-
 export default function DeveloperView({ o }: { o: Orchestrator }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [openStage, setOpenStage] = useState<string | null>(null);
 
-  const pipeline = useMemo(() => buildPipeline(o.spans, !o.busy), [o.spans, o.busy]);
+  const graph = useMemo(
+    () => buildGraph(o.spans, o.agents, !o.busy),
+    [o.spans, o.agents, o.busy],
+  );
   const depth = useMemo(() => depths(o.spans), [o.spans]);
   const selected = o.spans.find((s) => s.span_id === selectedId) ?? null;
 
@@ -55,15 +52,13 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
           <IconFlow size={22} />
           <h2>No request traced yet</h2>
           <p>
-            Send a request from the Console tab. Every stage below is drawn from the spans the
-            orchestrator emits while it runs — nothing is reconstructed after the fact.
+            Send a request from the Console tab. Every box and arrow below is drawn from the spans
+            the orchestrator emits while it runs — nothing is reconstructed after the fact.
           </p>
         </div>
       </div>
     );
   }
-
-  const waves = Math.max(1, ...o.spans.map((s) => Number(s.detail.wave ?? 1)));
 
   return (
     <div className="dev">
@@ -71,14 +66,14 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
         <section className="stats">
           <Stat label="Request" value={o.outcome?.request_id ?? "—"} mono />
           <Stat label="Session" value={o.outcome?.session_id?.slice(0, 12) ?? "—"} mono />
-          <Stat label="Wall clock" value={pipeline.totalMs + " ms"} />
+          <Stat label="Wall clock" value={graph.totalMs + " ms"} />
           <Stat label="Spans" value={String(o.spans.length)} />
-          <Stat label="Waves" value={String(waves)} />
+          <Stat label="Waves" value={String(graph.waves)} />
           <Stat label="Redactions" value={String(o.outcome?.phi_redactions ?? 0)} />
           <Stat
             label="Guardrail stops"
-            value={String(pipeline.blocks.length)}
-            tone={pipeline.blocks.length ? "danger" : undefined}
+            value={String(graph.blocks.length)}
+            tone={graph.blocks.length ? "danger" : undefined}
           />
         </section>
 
@@ -86,26 +81,20 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
           <header className="panel-head">
             <h2>
               <IconFlow size={15} />
-              Flow
+              Orchestration graph
             </h2>
             <p className="fine">
-              Nine stages, in the order the graph runs them. A stage with no spans is skipped, not
-              missing.
+              The graph <code>orchestrator/graph.py</code> compiles, lit from this run. A box glows
+              while its spans are open; a dim box is a path this request did not take. Click any
+              box for the spans behind it.
             </p>
           </header>
 
-          <ol className="flow">
-            {pipeline.stages.map((stage) => (
-              <FlowStep
-                key={stage.id}
-                stage={stage}
-                open={openStage === stage.id}
-                onToggle={() => setOpenStage(openStage === stage.id ? null : stage.id)}
-                onSelectSpan={setSelectedId}
-                selectedId={selectedId}
-              />
-            ))}
-          </ol>
+          <FlowGraph
+            graph={graph}
+            onSelectSpan={setSelectedId}
+            selectedSpanId={selectedId}
+          />
         </section>
 
         <section className="panel">
@@ -115,7 +104,7 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
               Timeline
             </h2>
             <p className="fine">
-              {pipeline.totalMs} ms end to end. Overlapping bars are genuinely concurrent
+              {graph.totalMs} ms end to end. Overlapping bars are genuinely concurrent
               specialists, not a queue.
             </p>
           </header>
@@ -123,15 +112,15 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
           <div className="ruler" aria-hidden>
             {[0, 0.25, 0.5, 0.75, 1].map((f) => (
               <span key={f} style={{ left: f * 100 + "%" }}>
-                {Math.round(pipeline.totalMs * f)}
+                {Math.round(graph.totalMs * f)}
               </span>
             ))}
           </div>
 
           <ol className="waterfall">
             {o.spans.map((span) => {
-              const width = Math.max(0.5, ((span.duration_ms ?? 0) / pipeline.totalMs) * 100);
-              const left = (span.offset_ms / pipeline.totalMs) * 100;
+              const width = Math.max(0.5, ((span.duration_ms ?? 0) / graph.totalMs) * 100);
+              const left = (span.offset_ms / graph.totalMs) * 100;
               const indent = depth.get(span.span_id) ?? 0;
               return (
                 <li key={span.span_id}>
@@ -206,8 +195,8 @@ export default function DeveloperView({ o }: { o: Orchestrator }) {
           <h2>Span inspector</h2>
           {!selected && (
             <p className="fine">
-              Select any bar in the timeline, or a span inside a flow stage, to see exactly what it
-              recorded.
+              Select any bar in the timeline, or a span behind a box in the graph, to see exactly
+              what it recorded.
             </p>
           )}
           {selected && <SpanDetail span={selected} />}
@@ -236,69 +225,9 @@ function Stat({
   );
 }
 
-function FlowStep({
-  stage,
-  open,
-  onToggle,
-  onSelectSpan,
-  selectedId,
-}: {
-  stage: Stage;
-  open: boolean;
-  onToggle(): void;
-  onSelectSpan(id: string): void;
-  selectedId: string | null;
-}) {
-  const expandable = stage.spans.length > 0;
-  return (
-    <li className={"step kind-" + stage.kind + " st-" + stage.status}>
-      <span className="step-marker" aria-hidden />
-      <div className="step-card">
-        <button
-          type="button"
-          className="step-head"
-          onClick={onToggle}
-          disabled={!expandable}
-          aria-expanded={expandable ? open : undefined}
-        >
-          <span className="step-title">
-            {expandable && <IconChevron size={13} className={"twist" + (open ? " open" : "")} />}
-            {stage.label}
-          </span>
-          <span className="step-sub">{stage.sub}</span>
-          <span className={"step-status st-" + stage.status}>{STATUS_LABEL[stage.status]}</span>
-          <span className="step-ms tabular">
-            {stage.status === "skipped" || stage.status === "pending"
-              ? ""
-              : stage.durationMs + " ms"}
-          </span>
-        </button>
-        <p className="step-metric">{stage.metric}</p>
-        {open && (
-          <ul className="step-spans">
-            {stage.spans.map((s) => (
-              <li key={s.span_id}>
-                <button
-                  type="button"
-                  className={
-                    "step-span st-" + s.status + (s.span_id === selectedId ? " is-selected" : "")
-                  }
-                  onClick={() => onSelectSpan(s.span_id)}
-                >
-                  <span>{s.name}</span>
-                  <span className="tabular">{s.duration_ms ?? "…"} ms</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </li>
-  );
-}
-
 function SpanDetail({ span }: { span: Span }) {
   const entries = Object.entries(span.detail).filter(([, v]) => v !== null && v !== undefined);
+  const note = explainGuardrail(span);
   return (
     <div className="detail">
       <div className={"detail-head kind-" + span.kind}>
@@ -306,11 +235,17 @@ function SpanDetail({ span }: { span: Span }) {
         <strong>{span.name}</strong>
       </div>
 
-      {isGuardBlock(span) && (
-        <p className="banner banner-danger tight">
-          <IconAlert size={14} />
-          The guardrail stopped this before it reached a data plane.
-        </p>
+      {note ? (
+        <GuardrailExplainer note={note} />
+      ) : (
+        isGuardBlock(span) && (
+          // Fallback for a guardrail `guardrails.ts` has no note for. A generic
+          // sentence beats a paragraph written for a different check.
+          <p className="banner banner-danger tight">
+            <IconAlert size={14} />
+            The guardrail stopped this before it reached a data plane.
+          </p>
+        )
       )}
 
       <dl className="kv">
@@ -344,6 +279,59 @@ function SpanDetail({ span }: { span: Span }) {
         </>
       )}
     </div>
+  );
+}
+
+const ACTION_LABEL: Record<GuardrailNote["action"], string> = {
+  blocked: "blocked — never reached a data plane",
+  flagged: "reported — nothing was blocked",
+  applied: "applied — runs on every request",
+};
+
+/**
+ * Which guardrail this was, and why it fired here.
+ *
+ * Named, then ruled, then reasoned - in that order, because the reader's first
+ * question is "which check is this?" and answering it with a paragraph makes
+ * them find the name themselves. The action chip sits in the header rather than
+ * at the end for the same reason: whether anything was actually stopped changes
+ * how the rest of the panel should be read.
+ */
+function GuardrailExplainer({ note }: { note: GuardrailNote }) {
+  return (
+    <section className={"guard-note guard-" + note.action} aria-label="Guardrail explanation">
+      <header className="guard-note-head">
+        <div>
+          <strong>{note.guard}</strong>
+          <code className="guard-source">{note.source}</code>
+        </div>
+        <span className="guard-action">{ACTION_LABEL[note.action]}</span>
+      </header>
+
+      <dl className="guard-body">
+        <dt>The rule</dt>
+        <dd>{inlineCode(note.rule)}</dd>
+        <dt>Why it fired here</dt>
+        <dd>{inlineCode(note.why)}</dd>
+        <dt>What happened</dt>
+        <dd>{inlineCode(note.effect)}</dd>
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * Render `backticked` runs as code, leave everything else alone.
+ *
+ * The notes name real argument and tool names, and a sentence where
+ * `patient_id` is set in prose reads as English rather than as the literal
+ * string the span recorded. Kept to this one substitution - a general markdown
+ * renderer here would be a dependency and a parser for two characters of
+ * formatting.
+ */
+function inlineCode(text: string) {
+  return text.split(/`([^`]+)`/g).map((part, i) =>
+    i % 2 === 1 ? <code key={i}>{part}</code> : <span key={i}>{part}</span>,
   );
 }
 

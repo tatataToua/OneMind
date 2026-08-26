@@ -65,6 +65,19 @@
   --k-synthesize: #475569;
   --k-memory: #be185d;
 
+  /* Fills for the same kinds, so a node in the graph can be tinted by what it
+     is rather than by how it is doing. `io` is not a span kind - it is the two
+     terminators, the request in and the answer out. */
+  --k-guardrail-tint: #fffbeb;
+  --k-route-tint: #eff6ff;
+  --k-agent-tint: #ecfeff;
+  --k-tool-tint: #f5f3ff;
+  --k-reconcile-tint: #ecfdf5;
+  --k-synthesize-tint: #f1f5f9;
+  --k-memory-tint: #fdf2f8;
+  --k-io: #64748b;
+  --k-io-tint: #f8fafc;
+
   /* rhythm */
   --r-sm: 5px;
   --r-md: 8px;
@@ -174,15 +187,20 @@ h3 {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 8px 0;
 }
 
 .mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   flex: none;
+  /* The icon sits on the gradient rather than beside it, so the tile has to
+     centre its child and hold it above the background. */
+  display: grid;
+  place-items: center;
+  color: #fff;
   background: conic-gradient(
     from 135deg,
     var(--plane-clinical),
@@ -201,13 +219,13 @@ h3 {
 }
 
 .brand-text strong {
-  font-size: 14.5px;
-  letter-spacing: -0.01em;
+  font-size: 17px;
+  letter-spacing: -0.015em;
 }
 
 .brand-text span {
   color: var(--ink-3);
-  font-size: 11.5px;
+  font-size: 12.5px;
 }
 
 .tabs {
@@ -508,6 +526,7 @@ h3 {
   border-top: 1px solid var(--line);
 }
 
+
 .hint {
   display: flex;
   align-items: center;
@@ -686,25 +705,12 @@ h3 {
   color: var(--ink-2);
 }
 
-.block-computed,
 .block-unverified {
   margin-top: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--ok-line);
+  border: 1px solid var(--danger-line);
   border-left-width: 3px;
   border-radius: var(--r-md);
-  background: var(--ok-tint);
-}
-
-.block-computed h3 {
-  color: var(--ok);
-}
-
-/* Louder than the computed block on purpose: redaction and reconciliation are
-   the system working, this is the system telling you not to trust one of its
-   own sentences. */
-.block-unverified {
-  border-color: var(--danger-line);
   background: var(--danger-tint);
 }
 
@@ -720,68 +726,6 @@ h3 {
 
 .block-unverified .chips {
   margin-top: 8px;
-}
-
-.findings {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.finding {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 10px;
-  align-items: baseline;
-}
-
-.verdict {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--line-2);
-  background: var(--surface);
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  white-space: nowrap;
-  min-width: 112px;
-}
-
-.tone-ok .verdict {
-  color: var(--ok);
-  border-color: var(--ok-line);
-}
-
-.tone-danger .verdict {
-  color: var(--danger);
-  border-color: var(--danger-line);
-}
-
-.tone-warn .verdict {
-  color: var(--warn);
-  border-color: var(--warn-line);
-}
-
-.finding-statement {
-  margin: 0;
-  font-size: 13px;
-  color: var(--ink);
-}
-
-.provenance {
-  grid-column: 2;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-3);
-  word-break: break-word;
 }
 
 /* ---------- right rail ---------- */
@@ -1013,172 +957,435 @@ h3 {
   margin-top: 3px;
 }
 
-/* ---------- flow spine ---------- */
+/* ---------- orchestration graph ---------- */
 
-.flow {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+/*
+ * Nodes are HTML on an absolute grid; edges are one SVG layer behind them on
+ * the identical pixel coordinates (see `views/FlowGraph.tsx`). Hence the fixed
+ * canvas inside a scroll container: the two layers must never disagree, and the
+ * cheapest way to guarantee that is to never let either one reflow.
+ */
 
-.step {
-  position: relative;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 10px;
-}
-
-/* The connector, drawn on the marker column so it survives variable heights. */
-.step::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: 16px;
-  bottom: -2px;
-  width: 1px;
-  background: var(--line-2);
-}
-
-.step:last-child::before {
-  display: none;
-}
-
-.step-marker {
-  position: relative;
-  z-index: 1;
-  margin-top: 10px;
-  width: 9px;
-  height: 9px;
-  justify-self: center;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 2px var(--line-2);
-}
-
-.step.st-ok .step-marker {
-  box-shadow: inset 0 0 0 2px var(--kind-color, var(--ok));
-  background: var(--kind-color, var(--ok));
-}
-
-.step.st-running .step-marker {
-  background: var(--primary);
-  box-shadow: 0 0 0 4px var(--ring);
-}
-
-.step.st-error .step-marker {
-  background: var(--danger);
-  box-shadow: inset 0 0 0 2px var(--danger);
-}
-
-.step-card {
-  padding: 6px 0 12px;
+/* A flex/grid item's default `min-width: auto` refuses to shrink below its
+   content, which would let the 940px canvas push the panel wider than its
+   column instead of scrolling inside it. */
+.graph-wrap {
   min-width: 0;
 }
 
-.step-head {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto auto;
-  align-items: baseline;
-  gap: 10px;
-  width: 100%;
-  padding: 2px 4px 2px 0;
-  border: 0;
-  background: none;
+.graph-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.graph {
+  position: relative;
+  margin: 0 auto;
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+}
+
+/* The region every value inside has been through redaction. */
+.safe {
+  fill: var(--surface-2);
+  stroke: var(--line-2);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+}
+
+.safe-label {
+  fill: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.edge {
+  fill: none;
+  stroke-width: 1.5;
+  stroke: var(--line-2);
+}
+
+.edge.is-dashed {
+  stroke-dasharray: 4 4;
+}
+
+.edge.is-done {
+  stroke: var(--ink-3);
+}
+
+.edge.is-live {
+  stroke: var(--primary);
+  stroke-width: 2;
+  stroke-dasharray: 7 7;
+  animation: edge-flow 600ms linear infinite;
+}
+
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+#arw-idle path {
+  fill: var(--line-2);
+}
+#arw-done path {
+  fill: var(--ink-3);
+}
+#arw-live path {
+  fill: var(--primary);
+}
+
+/* Labels sit on top of the line they describe, so they knock it out rather
+   than dodge it - which keeps every label attached to its own edge. */
+.edge-label {
+  fill: var(--ink-3);
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  paint-order: stroke;
+  stroke: var(--surface-2);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.edge-label.is-idle {
+  fill: var(--line-2);
+}
+
+.edge-label.is-live {
+  fill: var(--primary);
+  font-weight: 650;
+}
+
+/* ---------- graph nodes ---------- */
+
+.gnode {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 10px 8px;
+  border: 1px solid var(--line-2);
+  border-left: 3px solid var(--kind-color, var(--line-2));
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
   text-align: left;
   cursor: pointer;
-  border-radius: var(--r-sm);
+  overflow: hidden;
+  transition: box-shadow 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
 
-.step-head:disabled {
-  cursor: default;
+.gnode:hover {
+  border-color: var(--kind-color, var(--primary));
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
 }
 
-.step-head:hover:enabled .step-title {
-  color: var(--primary);
+.gnode.is-open {
+  border-color: var(--kind-color, var(--primary));
+  box-shadow: 0 0 0 2px var(--kind-tint, var(--primary-tint)),
+    0 2px 10px rgba(15, 23, 42, 0.12);
 }
 
-.step-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13.5px;
-  font-weight: 600;
+.gnode-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+}
+
+.gnode-label {
+  font-size: 13px;
+  font-weight: 650;
   color: var(--ink);
-}
-
-.twist {
-  transition: transform 150ms ease;
-  color: var(--ink-3);
-}
-
-.twist.open {
-  transform: rotate(90deg);
-}
-
-.step-sub {
-  font-size: 11.5px;
-  color: var(--ink-3);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.gnode-ms {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--ink-3);
   white-space: nowrap;
 }
 
-.step-status {
-  justify-self: start;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 2px 7px;
+.gnode-tag {
+  padding: 1px 6px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--ink-3);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.step-status.st-ok {
-  color: var(--ok);
-  border-color: var(--ok-line);
-  background: var(--ok-tint);
+.gnode-head .gnode-tag {
+  margin-left: auto;
 }
 
-.step-status.st-running {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: var(--primary-tint);
+.gnode-wave {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--k-memory-tint);
+  color: var(--k-memory);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.step-status.st-error {
-  color: var(--danger);
+.gnode-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+
+.gnode-metric {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--ink-2);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* The one data source this specialist owns, and nobody else touches. */
+.gnode-plane {
+  margin-top: auto;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
+  background: var(--kind-tint, var(--surface-3));
+  color: var(--kind-color, var(--ink-3));
+  font-size: 10px;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* -- node status ------------------------------------------------------- */
+
+.gnode.st-ok {
+  background: var(--kind-tint, var(--surface));
+}
+
+.gnode.st-error {
   border-color: var(--danger-line);
+  border-left-color: var(--danger);
   background: var(--danger-tint);
 }
 
-.step-ms {
-  font-size: 11.5px;
-  color: var(--ink-3);
-  min-width: 46px;
-  text-align: right;
+.gnode.st-error .gnode-tag {
+  color: var(--danger);
+  border-color: var(--danger-line);
+  background: var(--surface);
 }
+
+/* A path this request did not take. Still drawn - "the router picked one of
+   four planes" is only legible if the other three are on the page. */
+.gnode.st-skipped,
+.gnode.st-pending {
+  background: var(--surface);
+  border-color: var(--line);
+  border-left-color: var(--line-2);
+  box-shadow: none;
+  opacity: 0.62;
+}
+
+.gnode.st-skipped .gnode-label,
+.gnode.st-pending .gnode-label {
+  font-weight: 550;
+  color: var(--ink-3);
+}
+
+.gnode.st-skipped .gnode-metric,
+.gnode.st-pending .gnode-metric {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.gnode.st-skipped .gnode-plane,
+.gnode.st-pending .gnode-plane {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+
+/* -- live ---------------------------------------------------------------
+   The glow is the progress indicator. It is keyed off span status, so a box
+   is lit for exactly as long as its span is open - never a fixed animation
+   pretending to know how long a model call takes. */
+
+.gnode.st-running {
+  border-color: var(--kind-color, var(--primary));
+  background: var(--kind-tint, var(--primary-tint));
+  z-index: 2;
+  animation: node-live 1500ms ease-in-out infinite;
+}
+
+.gnode.st-running .gnode-tag {
+  color: var(--kind-color, var(--primary));
+  border-color: currentColor;
+  background: var(--surface);
+}
+
+@keyframes node-live {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--ring), 0 0 12px rgba(14, 116, 144, 0.16);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 0 0 7px transparent, 0 0 26px rgba(14, 116, 144, 0.3);
+    transform: translateY(-1px);
+  }
+}
+
+/* -- what the diagram cannot draw ---------------------------------------- */
+
+.graph-key {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 5px 18px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* Direct child only - the nested span holds ordinary inline text, and making
+   it a flex container would break `code` onto its own line. */
+.graph-key > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.graph-key code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+.swatch {
+  flex: none;
+  margin-top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+}
+
+.swatch.is-live {
+  border-color: var(--primary);
+  background: var(--primary-tint);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.swatch.is-dim {
+  opacity: 0.55;
+}
+
+.swatch.is-safe {
+  border-style: dashed;
+  background: var(--surface-2);
+}
+
+.swatch.is-memory {
+  border-color: var(--k-memory);
+  background: var(--k-memory-tint);
+}
+
+.graph-handoff {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 9px 12px;
+  border: 1px solid var(--k-memory);
+  border-radius: var(--r-md);
+  background: var(--k-memory-tint);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.graph-handoff svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--k-memory);
+}
+
+.graph-handoff code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--k-memory);
+}
+
+.graph-drill {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.graph-drill-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.graph-drill-head svg {
+  align-self: center;
+  color: var(--ink-3);
+}
+
+.graph-drill-head .tabular {
+  margin-left: auto;
+}
+
+.graph-drill .step-metric {
+  margin-top: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- span list, shared by the graph drill-down ---------- */
 
 .step-metric {
   margin: 2px 0 0;
   font-size: 12.5px;
   color: var(--ink-2);
   word-break: break-word;
-}
-
-.step.st-skipped .step-title,
-.step.st-pending .step-title {
-  color: var(--ink-3);
-  font-weight: 550;
-}
-
-.step.st-skipped .step-metric,
-.step.st-pending .step-metric {
-  color: var(--ink-3);
-  font-style: italic;
 }
 
 .step-spans {
@@ -1198,7 +1405,7 @@ h3 {
   padding: 4px 9px;
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  background: var(--surface-2);
+  background: var(--surface);
   font-size: 12px;
   color: var(--ink-2);
   cursor: pointer;
@@ -1349,24 +1556,54 @@ h3 {
 
 .kind-guardrail {
   --kind-color: var(--k-guardrail);
+  --kind-tint: var(--k-guardrail-tint);
 }
 .kind-route {
   --kind-color: var(--k-route);
+  --kind-tint: var(--k-route-tint);
 }
 .kind-agent {
   --kind-color: var(--k-agent);
+  --kind-tint: var(--k-agent-tint);
 }
 .kind-tool {
   --kind-color: var(--k-tool);
+  --kind-tint: var(--k-tool-tint);
 }
 .kind-reconcile {
   --kind-color: var(--k-reconcile);
+  --kind-tint: var(--k-reconcile-tint);
 }
 .kind-synthesize {
   --kind-color: var(--k-synthesize);
+  --kind-tint: var(--k-synthesize-tint);
 }
 .kind-memory {
   --kind-color: var(--k-memory);
+  --kind-tint: var(--k-memory-tint);
+}
+.kind-io {
+  --kind-color: var(--k-io);
+  --kind-tint: var(--k-io-tint);
+}
+
+/* A specialist is coloured by the plane it owns, not by "agent" in general -
+   the same four hues the Console tab uses for its source pills. */
+.plane-clinical {
+  --kind-color: var(--plane-clinical);
+  --kind-tint: var(--plane-clinical-tint);
+}
+.plane-revenue_cycle {
+  --kind-color: var(--plane-revenue_cycle);
+  --kind-tint: var(--plane-revenue_cycle-tint);
+}
+.plane-compliance {
+  --kind-color: var(--plane-compliance);
+  --kind-tint: var(--plane-compliance-tint);
+}
+.plane-remote_monitoring {
+  --kind-color: var(--plane-remote_monitoring);
+  --kind-tint: var(--plane-remote_monitoring-tint);
 }
 
 .legend {
@@ -1527,6 +1764,107 @@ h3 {
   word-break: break-word;
 }
 
+/* ======================= guardrail explainer ======================== */
+
+/* Tinted by what the guard *did*, not by its severity: a reported finding and
+   a refused call are both worth reading, and only one of them stopped
+   anything. `--guard-*` is set per action below so the block itself stays one
+   rule set. */
+.guard-note {
+  margin: 0 0 14px;
+  border: 1px solid var(--guard-line);
+  border-left: 3px solid var(--guard-ink);
+  border-radius: var(--r-md);
+  background: var(--guard-tint);
+  overflow: hidden;
+}
+
+.guard-blocked {
+  --guard-ink: var(--danger);
+  --guard-line: var(--danger-line);
+  --guard-tint: var(--danger-tint);
+}
+
+.guard-flagged {
+  --guard-ink: var(--warn);
+  --guard-line: var(--warn-line);
+  --guard-tint: var(--warn-tint);
+}
+
+.guard-applied {
+  --guard-ink: var(--primary);
+  --guard-line: var(--line-2);
+  --guard-tint: var(--surface-2);
+}
+
+.guard-note-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--guard-line);
+}
+
+.guard-note-head strong {
+  display: block;
+  font-size: 13px;
+  color: var(--guard-ink);
+}
+
+.guard-source {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.guard-action {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--guard-ink);
+  opacity: 0.85;
+}
+
+.guard-body {
+  margin: 0;
+  padding: 10px 11px 11px;
+  background: var(--surface);
+}
+
+.guard-body dt {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.guard-body dd {
+  margin: 3px 0 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.guard-body dd:last-child {
+  margin-bottom: 0;
+}
+
+.guard-body code {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--ink);
+  /* Codes and argument names are short, and the default break-after-hyphen rule
+     splits `1980-06-15` across two lines - which reads as two values. */
+  white-space: nowrap;
+}
+
 /* ============================ responsive ============================ */
 
 @media (max-width: 1180px) {
@@ -1572,30 +1910,6 @@ h3 {
 
   .row-track {
     display: none;
-  }
-
-  .step-head {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .step-sub {
-    grid-column: 1 / -1;
-    white-space: normal;
-  }
-
-  /* A 112px badge beside a statement leaves nothing for the statement, so the
-     verdict stacks above it instead of sharing the row. */
-  .finding {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .verdict {
-    min-width: 0;
-    justify-self: start;
-  }
-
-  .provenance {
-    grid-column: 1;
   }
 }
 
