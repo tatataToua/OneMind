@@ -48,6 +48,17 @@ jobs:
       - name: Tests
         run: uv run pytest -q
 
+      # Known-vulnerable dependencies are the one class of security problem
+      # that arrives without anyone changing the code, so it is checked on a
+      # schedule the code review cannot provide. Advisory-only for now: a
+      # transitive CVE with no fix available should not block a push, and a
+      # gate that gets routinely overridden teaches people to override gates.
+      - name: Audit dependencies
+        continue-on-error: true
+        run: |
+          uv pip install pip-audit
+          uv run pip-audit --desc
+
       # The evals themselves need a live model and stay out of CI. This does
       # not run them - it checks that the tables in the README still match the
       # committed report, which is the failure mode that actually happened:
@@ -77,3 +88,7 @@ jobs:
       # bundles. A type error fails the job.
       - name: Typecheck and build
         run: npm run build
+
+      - name: Audit dependencies
+        continue-on-error: true
+        run: npm audit --audit-level=high

@@ -51,6 +51,27 @@ class Settings(BaseSettings):
 
     # --- guardrails ---------------------------------------------------------
     phi_redaction_enabled: bool = True
+    # Flag instruction-shaped text arriving in tool results. The fence around
+    # retrieved data is unconditional; this only controls the audit signal.
+    injection_detection_enabled: bool = True
+
+    # --- request limits -----------------------------------------------------
+    # Sustained rate and burst for the two endpoints that run inference.
+    # Deliberately generous: the control that actually bounds a caller's share
+    # of the GPU is the concurrency cap below, not this.
+    rate_limit_per_minute: float = 20.0
+    rate_limit_burst: int = 10
+    # Ceiling on distinct callers tracked at once. The limiter allocates per
+    # source address and the attacker picks the addresses, so the map is
+    # bounded the same way `max_sessions` bounds conversations.
+    rate_limit_max_keys: int = 1024
+    # In-flight requests per caller. One request can occupy every one of
+    # `max_parallel_agents` inference slots for `agent_timeout_s`, so this is
+    # what stops a single client holding the whole model.
+    max_concurrent_per_client: int = 2
+    # Bytes accepted on a request body. `message` is capped at 4000 characters
+    # by the schema; this refuses the oversized payload before it is parsed.
+    max_request_bytes: int = 64 * 1024
 
     # --- data ---------------------------------------------------------------
     fixtures_dir: str = "fixtures"

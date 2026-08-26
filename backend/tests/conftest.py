@@ -54,10 +54,15 @@ class StubProvider:
         self.delay = delay
         self.structured_calls: list[str] = []
         self.complete_calls: list[str] = []
+        # Full message lists, not just the user turn. A guard that changes the
+        # *system* prompt - the injection fence around tool results - is
+        # invisible to `complete_calls` and needs this to be testable at all.
+        self.prompts: list[list[Message]] = []
         self.stream_calls: int = 0
 
     async def complete(self, messages: Sequence[Message], *, temperature: float = 0.0) -> str:
         self.complete_calls.append(messages[-1].content)
+        self.prompts.append(list(messages))
         await asyncio.sleep(self.delay)
         return self.answer
 

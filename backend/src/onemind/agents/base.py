@@ -34,6 +34,7 @@ from pydantic import BaseModel, Field, create_model
 
 from ..config import settings
 from ..guardrails.grounding import ungrounded_values
+from ..guardrails.injection import fence, suspicious_spans
 from ..guardrails.phi import PHISession
 from ..llm.base import LLMProvider, Message
 from ..observability.trace import SpanKind, SpanStatus, Trace
@@ -182,17 +183,24 @@ def _names_a_subject(request: str) -> bool:
     An omitted scoping argument is only a problem when the question is about
     somebody - "what is the SpO2 threshold" is legitimately unscoped.
 
-    And established facts may only be offered when the request names nobody.
-    Observed live: asked "what is PHI_NAME_1 taking?" and then "now look up
-    PHI_NAME_2 and show their labs", the planner used the `patient_id` on the
-    board - the first patient's - and reported that no data existed for the
-    second. Memory silently outranked an explicit instruction, and the system
-    answered confidently about the wrong person.
+    And the board may only speak when the request names nobody - into the
+    prompt, and into an omitted argument. Observed live: asked "what is
+    PHI_NAME_1 taking?" and then "now look up PHI_NAME_2 and show their labs",
+    the planner used the `patient_id` on the board - the first patient's - and
+    reported that no data existed for the second. Memory silently outranked an
+    explicit instruction, and the system answered confidently about the wrong
+    person.
+
+    Both routes have to be closed, and closing only the prompt was the first
+    attempt. The planner then omitted the id it did not have, the argument
+    repair below filled it in from the board, and the wrong chart was read with
+    nothing in the trace showing a model that had been told to.
 
     So the rule is that the request always wins and memory speaks only into
     silence. The second wave does not depend on this: it supplies the resolved
     identifier by substituting the argument directly, which no prompt can
-    talk it out of.
+    talk it out of - and by then the board has been refreshed by this turn's
+    own retrieval, so what it substitutes is this turn's patient.
 
     The consequence when redaction is disabled is deliberate and worth knowing:
     no tokens means no signal, so an under-scoped call proceeds exactly as it
@@ -377,6 +385,16 @@ class BaseSpecialist:
             # second wave. Only a call with no identifier at all can widen.
             scoped_by_something = any(_is_identifier(k) and str(v).strip() for k, v in args.items())
 
+            # The same rule that governs the prompt governs the arguments, and
+            # it has to, or hiding the facts from the planner achieves nothing.
+            # Observed live: asked about one patient and then another, the
+            # planner correctly omitted the id it did not have, and this repair
+            # filled it in from the board - with the *previous* patient's id.
+            # The block never reached the prompt and the wrong chart was read
+            # anyway, which is worse, because nothing in the trace shows a
+            # model that was told to do it.
+            names_subject = _names_a_subject(request)
+
             under_scoped: list[str] = []
             for key in self.spec.needs:
                 if key not in props:
@@ -385,9 +403,13 @@ class BaseSpecialist:
                 supplied = str(args.get(key, "")).strip()
 
                 if not supplied:
-                    if established:
+                    if established and (wave > 1 or not names_subject):
+                        # Memory speaks into silence. On wave one that means the
+                        # request naming somebody wins outright; on a retry the
+                        # board wins, because a retry only happens after this
+                        # turn's own retrieval refreshed it - see below.
                         args[key] = established
-                    elif _names_a_subject(request) and not scoped_by_something:
+                    elif names_subject and not scoped_by_something:
                         under_scoped.append(key)
                 elif established and wave > 1 and supplied != established:
                     # On a retry only, the board wins. Wave one demonstrably
@@ -487,6 +509,29 @@ class BaseSpecialist:
             )
 
         evidence = json.dumps(executed, indent=2, default=str)
+
+        # Truncate first, then fence. The other order cuts the closing marker
+        # off a long result and reopens the escape the fence exists to close.
+        shown = evidence[:12000]
+
+        # Records are not a trusted source of instructions. `fence` is the
+        # defence and is unconditional; this is the audit signal, reported the
+        # way an unsupported claim is - because a specialist that quietly
+        # obeyed a poisoned note and one that answered honestly look identical
+        # from the outside, and only the trace can tell them apart.
+        if settings.injection_detection_enabled:
+            injected = suspicious_spans(shown)
+            if injected:
+                span = trace.start(
+                    SpanKind.GUARDRAIL,
+                    "Instruction-like text in retrieved data",
+                    parent_id=parent,
+                    # Already redacted: `executed` holds `safe_output`. Kept
+                    # verbatim otherwise, because the fragment is the finding.
+                    fragments=injected[:5],
+                )
+                trace.end(span, status=SpanStatus.ERROR, count=len(injected))
+
         answer = await self.provider.complete(
             [
                 Message(
@@ -494,7 +539,7 @@ class BaseSpecialist:
                     content=_ANSWER_SYSTEM.format(
                         display_name=self.spec.display_name,
                         data_plane=self.spec.data_plane,
-                        tool_results=evidence[:12000],
+                        tool_results=fence(shown),
                     ),
                 ),
                 Message(role="user", content=request),
