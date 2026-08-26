@@ -175,12 +175,18 @@ def build_graph(
         results = state.get("results", [])
         wave = state.get("wave", 0) + 1
 
-        known = board.keys()
+        # Values, not just keys. On a follow-up turn `patient_id` is already a
+        # key before anyone runs, so a key-set diff reports nothing new when
+        # the conversation moves to a second patient - and the specialist
+        # blocked for want of *that* patient's id never earns its retry.
+        # A key that now names somebody else was established this round every
+        # bit as much as a key that did not exist before.
+        known = {f.key: f.value for f in board.all()}
         established: list[str] = []
         fact_span = trace.start(SpanKind.MEMORY, "Facts established", wave=wave)
         try:
             collect(results, session, turn=turn, into=board)
-            established = sorted(board.keys() - known)
+            established = sorted(f.key for f in board.all() if known.get(f.key) != f.value)
             # Values are redaction placeholders (see `facts.py`), so recording
             # them here is safe and is the point - the trace has to show what
             # unblocked a second wave, not merely that one happened.
@@ -227,6 +233,11 @@ def build_graph(
         still retrieved nothing, the patient genuinely has no such record.
         Re-running it would ask the identical question and get the identical
         answer, one agent round later.
+
+        A key whose value changed counts as new, which is what makes switching
+        patient work: turn two holds a `patient_id` from turn one, so nothing
+        would look new, and the specialist blocked on the *new* patient would
+        never be retried. It changed, so it is new.
         """
         if state.get("wave", 0) >= settings.max_waves:
             return END

@@ -416,3 +416,189 @@ def test_latest_per_agent_prefers_the_later_wave() -> None:
 
 def test_history_block_is_empty_before_any_turn(redactor) -> None:
     assert Conversation("s", redactor.session()).history_block() == ""
+
+
+# -- switching subject mid-conversation --------------------------------------
+
+
+class SwitchingProvider(FactAwareProvider):
+    """Plans for whichever patient *this* request names.
+
+    Two departures from `FactAwareProvider`, both of them what a real planner
+    does rather than what a script finds convenient.
+
+    Clinical searches the name placeholder in the request instead of a fixed
+    one, so turn two looks up the person turn two asked about.
+
+    Remote Monitoring leaves `patient_id` empty when the prompt offers no
+    facts. It has a name and no identifier, and the telemetry plane keys by
+    id - so the honest plan is an unscoped call, which is precisely the case
+    `base.py` repairs from the board.
+    """
+
+    _NAME = re.compile(r"PHI_NAME_\d+")
+
+    async def structured(
+        self,
+        messages: Sequence[Message],
+        schema: type[BaseModel],
+        *,
+        temperature: float = 0.0,
+    ) -> BaseModel:
+        system = messages[0].content
+        fields = set(schema.model_fields)
+        await asyncio.sleep(0)
+
+        if "is_actionable" in fields:
+            self.route_prompts.append(system)
+            return schema.model_validate(
+                {
+                    "is_actionable": True,
+                    "clarifying_question": "",
+                    "agents": self.agents,
+                    "rationale": "stub",
+                }
+            )
+
+        self.plan_prompts.append(system)
+        key = schema.__name__.removesuffix("_Plan")
+        facts = dict(_FACT.findall(system))
+
+        if key == "clinical":
+            named = self._NAME.search(messages[-1].content)
+            return schema.model_validate(
+                {
+                    "calls": [
+                        {
+                            "tool": "fhir_search_patient",
+                            "arguments": {"name": named.group(0) if named else ""},
+                        }
+                    ]
+                }
+            )
+
+        if key == "remote_monitoring":
+            args: dict[str, Any] = {"metric": "blood_pressure"}
+            if "patient_id" in facts:
+                args["patient_id"] = facts["patient_id"]
+            return schema.model_validate(
+                {"calls": [{"tool": "telemetry_series", "arguments": args}]}
+            )
+
+        return schema.model_validate({"calls": []})
+
+
+@pytest.fixture
+def other_subject() -> dict[str, Any]:
+    """A second patient, also uniquely named and also carrying a device."""
+    from onemind.tools import store
+
+    return next(p for p in store.patients() if p["patient_id"] == "12789")
+
+
+@pytest.fixture
+def switching(redactor):
+    def _make() -> tuple[Orchestrator, SwitchingProvider]:
+        provider = SwitchingProvider(
+            agents=["clinical", "remote_monitoring"], clinical_name="PHI_NAME_1"
+        )
+        return (
+            Orchestrator(
+                provider=provider,
+                specialists=build_specialists(provider),
+                redactor=redactor,
+                roster=registry,
+            ),
+            provider,
+        )
+
+    return _make
+
+
+def _telemetry_ids(outcome: dict[str, Any], conversation: Conversation) -> list[str]:
+    """Every patient id the telemetry plane was actually queried with."""
+    return [
+        conversation.phi.rehydrate(span["detail"]["arguments"].get("patient_id", ""))
+        for span in outcome["trace"]["spans"]
+        if span["kind"] == "tool" and span["detail"].get("tool") == "telemetry_series"
+    ]
+
+
+async def test_naming_a_second_patient_replaces_the_first(
+    switching, subject, other_subject, redactor
+) -> None:
+    """The board must follow the conversation, not anchor to where it started."""
+    orchestrator, _ = switching()
+    conversation = ConversationStore(redactor).get(None)
+
+    await orchestrator.run(
+        f"Look up {subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+    assert conversation.phi.rehydrate(conversation.facts.value("patient_id")) == "12678"
+
+    second = await orchestrator.run(
+        f"Now look up {other_subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+
+    assert conversation.phi.rehydrate(conversation.facts.value("patient_id")) == "12789"
+    assert _telemetry_ids(second, conversation) == ["12789"]
+
+
+async def test_a_changed_subject_earns_the_blocked_specialist_a_retry(
+    switching, subject, other_subject, redactor
+) -> None:
+    """Turn two already holds a `patient_id`, so nothing about the board is new
+    by key. It names a different person, which is the only sense of "new" that
+    matters to a specialist blocked for want of *that* person's id."""
+    orchestrator, provider = switching()
+    conversation = ConversationStore(redactor).get(None)
+
+    await orchestrator.run(
+        f"Look up {subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+    provider.plan_prompts.clear()
+
+    await orchestrator.run(
+        f"Now look up {other_subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+    assert len([p for p in provider.plan_prompts if "Remote Monitoring" in p]) == 2
+
+
+async def test_the_previous_patients_facts_do_not_survive_the_switch(
+    switching, subject, other_subject, redactor
+) -> None:
+    orchestrator, _ = switching()
+    conversation = ConversationStore(redactor).get(None)
+
+    await orchestrator.run(f"Look up {subject['name']}", conversation=conversation)
+    first_mrn = conversation.facts.value("mrn")
+    assert first_mrn
+
+    await orchestrator.run(f"Now look up {other_subject['name']}", conversation=conversation)
+    assert conversation.facts.value("mrn") != first_mrn
+    assert conversation.phi.rehydrate(conversation.facts.value("mrn")) == other_subject["mrn"]
+
+
+async def test_an_unscoped_follow_up_still_uses_the_current_subject(
+    switching, subject, other_subject, redactor
+) -> None:
+    """Memory stays useful. Once the conversation has moved on, "and again?"
+    names nobody, so the board speaks - with the patient asked about last."""
+    orchestrator, _ = switching()
+    conversation = ConversationStore(redactor).get(None)
+
+    await orchestrator.run(
+        f"Look up {subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+    await orchestrator.run(
+        f"Now look up {other_subject['name']} and check the blood pressure trend",
+        conversation=conversation,
+    )
+    third = await orchestrator.run("and the trend again?", conversation=conversation)
+
+    assert _telemetry_ids(third, conversation) == ["12789"]
