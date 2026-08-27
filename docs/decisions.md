@@ -772,3 +772,89 @@ instance would strand half the conversations and break the two-wave dispatch
 (#22) intermittently rather than visibly. That ceiling is the deployment's real
 scaling limit, and moving past it means moving session state out of the process,
 which is a different project.
+
+---
+
+## 26. The demo can borrow the laptop's GPU through an authenticated tunnel
+
+**Decision.** `./run.ps1 tunnel` points the deployed service at the Ollama
+running on the demo machine, for the length of a demo. The hosted build's
+provider flips from `groq` to `ollama` and `ONEMIND_OLLAMA_HOST` becomes a
+Cloudflare quick-tunnel URL. `./run.ps1 deploy` puts Groq back, because it uses
+`--set-env-vars` and so drops everything the tunnel task added.
+
+**Why, given #25 just argued the other way.** Groq is what keeps the link alive
+when nobody is watching, and that is still what the link does most of the time.
+It is the wrong trade for the twenty minutes of a live walkthrough. The free
+tier's binding limit is 8000 tokens a minute; one turn is a routing call, two
+calls per specialist per wave, and a synthesis. Meanwhile the person giving the
+demo is standing next to a machine with the weights already resident. During a
+demo the GPU is free and the token budget is not, so the deployment should spend
+the one it has.
+
+**What is exposed is not Ollama.** Ollama has no authentication, and its API is
+not only inference - `/api/pull`, `/api/create` and `/api/delete` manage models.
+A tunnel to 11434 therefore publishes model management, and an hour of somebody
+else's GPU, to whoever finds the hostname. `llm/gateway.py` is what the tunnel
+points at instead: two routes, a bearer token compared in constant time, and
+Ollama still bound to loopback where it started. An unset token means 503 rather
+than open, because the one failure mode worth engineering against here is the
+gateway that quietly stops guarding anything.
+
+The token is 32 bytes from the OS CSPRNG, generated once into the gitignored
+`backend/.env` and held in Secret Manager rather than passed with
+`--set-env-vars` - the same reasoning as the Groq key in #25, since a service's
+revision history does not forget. And `run.ps1 tunnel` will not hand the address
+to Cloud Run until it has watched the live tunnel refuse an unauthenticated
+request. Tests describe the gateway; that check describes the process actually
+running.
+
+**Two corrections found on the first live run.** Neither was caught by the
+tests, because both live in the deployment rather than in the code the tests
+cover.
+
+The first: `gcloud run services update` changes environment variables and leaves
+the image alone. Pointing the service at the tunnel that way left a container
+built before the provider learned to send a bearer token, so every request
+arrived unauthenticated and the gateway - correctly - answered 401. Health still
+read `provider: ollama`, because health reports which provider was *selected*.
+The task now deploys from source, sharing one `Deploy-Service` with `deploy`, so
+the running image is always the code being demonstrated.
+
+The second: the task sets `$ErrorActionPreference = 'Continue'`, because gcloud
+writes ordinary progress to stderr and PowerShell 5.1 would otherwise throw on a
+successful deploy. Under that setting the two safety checks stopped being
+checks. A fresh quick-tunnel hostname takes a few seconds to resolve, and the
+first attempt failed with a DNS error, printed it, and carried on - then the
+unauthenticated probe "passed" because it failed the same way. A refusal that
+cannot be distinguished from a network error is not a refusal. Both checks now
+retry, and the second one requires an observed 401 rather than an absence of
+success.
+
+The general shape of that second bug is worth naming: a guard whose failure mode
+is silence will eventually be measuring nothing, and the way it is discovered is
+that it approves something it should have stopped.
+
+**Why the body is relayed byte for byte.** The gateway is a proxy, not a
+provider. `format` carries the JSON Schema that makes routing a constrained
+decode, and `think: false` is what keeps chain-of-thought out of structured
+output (#8). Re-encoding either in the middle breaks decoding without breaking
+the request, which is the worst shape a bug can take, so nothing here parses the
+payload it is carrying.
+
+**What the task proves before it hands over a URL.** Ollama answers through the
+tunnel with the token; an unauthenticated request comes back 401; and, after the
+deploy, the hosted service completes one real turn end to end. That last one is
+the only check that exercises the whole path - container, tunnel, gateway, GPU -
+and it is the one that would have caught both corrections above.
+
+**Cost.** The link is now only as available as the laptop and two open windows,
+and closing either ends the demo. A source build runs on every invocation, which
+costs a few minutes before a demo rather than a wrong image during one. A quick tunnel's hostname is fresh every run,
+so the service has to be told the new address each time - which is why this is a
+task rather than a documented `gcloud` incantation. Fan-out is only real if
+Ollama was started with `OLLAMA_NUM_PARALLEL=4`; otherwise four specialists
+queue behind one slot and the concurrency the graph exists to exploit is
+invisible in the trace. Latency gains a round trip to Cloudflare and back to a
+home connection - tolerable for the 4B, and the reason the task warms the model
+with `keep_alive: -1` before it publishes anything.

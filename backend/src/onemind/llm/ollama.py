@@ -37,11 +37,24 @@ class OllamaProvider:
         host: str | None = None,
         model: str | None = None,
         num_ctx: int | None = None,
+        token: str | None = None,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.host = (host or settings.ollama_host).rstrip("/")
         self.model = model or settings.ollama_model
         self.num_ctx = num_ctx or settings.ollama_num_ctx
-        self._client = httpx.AsyncClient(timeout=settings.ollama_timeout_s)
+        # Ollama itself has no authentication, and a loopback call needs none.
+        # The header exists for one shape only: `host` pointing at the tunnelled
+        # gateway (`llm/gateway.py`) instead of at 127.0.0.1. Sending it when no
+        # token is configured would put an empty bearer on every local request.
+        self.token = token if token is not None else settings.ollama_auth_token
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        self._client = httpx.AsyncClient(
+            timeout=settings.ollama_timeout_s,
+            headers=headers,
+            transport=transport,
+        )
 
     # -- internals -----------------------------------------------------------
 

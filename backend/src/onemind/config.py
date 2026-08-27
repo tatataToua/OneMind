@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     # slots fit alongside the weights in 8GB of VRAM.
     ollama_num_ctx: int = 16384
     ollama_timeout_s: float = 120.0
+    # Bearer token the provider presents to `llm/gateway.py`. Empty for an
+    # ordinary local run, where nothing sits between this process and loopback
+    # and there is nothing to authenticate to. Set on both ends only for the
+    # tunnelled demo, where the hosted container reaches back to a laptop GPU.
+    ollama_auth_token: str = ""
+    # Port the gateway listens on. Ollama keeps 11434 and stays bound to
+    # loopback; the tunnel is pointed here, so what reaches the internet is the
+    # allowlist rather than the model server.
+    ollama_gateway_port: int = 11435
 
     # --- bedrock (production path, unused on the demo box) ------------------
     bedrock_region: str = "us-east-1"
@@ -42,11 +51,15 @@ class Settings(BaseSettings):
     # parameter entirely, for models that reject it.
     groq_reasoning_format: str = "hidden"
     groq_timeout_s: float = 120.0
-    # The free tier is 30 requests/minute. Both the eval harness and a demo
-    # where someone clicks twice will cross it, and an unretried 429 reaches the
-    # clinician as a 500. Retried with exponential backoff, or with whatever
-    # `Retry-After` says when Groq sends one.
-    groq_max_retries: int = 3
+    # The free tier's binding limit is 8000 tokens/minute, not a request count
+    # (the request cap is 1000/day). One turn is a routing call, two calls per
+    # specialist per wave, and a synthesis stream, so a single turn can spend a
+    # meaningful slice of a minute's token budget and two in quick succession
+    # cross it. An unretried 429 reaches the clinician as a 500. Retried with
+    # exponential backoff, or with whatever `Retry-After` says when Groq sends
+    # one. Six attempts because the backoff has to outlast a token-per-minute
+    # window refilling, which three (~7s) does not.
+    groq_max_retries: int = 6
     groq_retry_base_delay_s: float = 1.0
 
     # --- orchestration ------------------------------------------------------

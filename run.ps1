@@ -22,10 +22,11 @@
   ./run.ps1 compare    # router vs monolith baseline (needs Ollama)
   ./run.ps1 check      # pre-demo readiness check
   ./run.ps1 deploy     # build and ship to Cloud Run (needs gcloud)
+  ./run.ps1 tunnel     # point the hosted app at this machine's Ollama
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check', 'deploy')]
+    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check', 'deploy', 'tunnel')]
     [string]$Task = 'check'
 )
 
@@ -98,6 +99,128 @@ function Invoke-Py {
         & $VenvPy @PyArgs
         if ($LASTEXITCODE -ne 0) { throw "failed: python $($PyArgs -join ' ')" }
     } finally { Pop-Location }
+}
+
+function Deploy-Service {
+    <#  Build from source and ship it, with whichever provider wiring the caller
+        asked for.
+
+        Both tasks go through here, because a source build is the only thing
+        that guarantees the running image contains the code being demonstrated.
+        `gcloud run services update` changes environment variables and nothing
+        else, so a service pointed at a tunnel while still running an older
+        image sends no bearer token and its own gateway refuses it. #>
+    param(
+        [Parameter(Mandatory)][string]$Service,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][string]$Region,
+        [Parameter(Mandatory)][string]$ServiceAccount,
+        [Parameter(Mandatory)][string]$EnvVars,
+        [Parameter(Mandatory)][string]$Secrets,
+        [Parameter(Mandatory)][string]$Root
+    )
+
+    # Source-based deploys upload a zip to a staging bucket and have Cloud Build
+    # read it back. On projects created after mid-2024 the default compute
+    # service account is not granted that access, and the failure arrives as a
+    # 403 on `storage.objects.get` for a bucket you never named - which reads
+    # like a bug rather than a missing role.
+    Write-Host '==> granting the build service account its role' -ForegroundColor Cyan
+    & gcloud projects add-iam-policy-binding $Project `
+        --member="serviceAccount:$ServiceAccount" --role='roles/cloudbuild.builds.builder' `
+        --condition=None --verbosity=error 2>&1 | Out-Null
+
+    Write-Host '==> building and deploying' -ForegroundColor Cyan
+    Push-Location $Root
+    try {
+        & gcloud run deploy $Service `
+            --source . `
+            --region $Region `
+            --project $Project `
+            --allow-unauthenticated `
+            --port 8080 `
+            --memory 1Gi `
+            --timeout 300 `
+            --min-instances 0 `
+            --max-instances 1 `
+            --set-env-vars $EnvVars `
+            --set-secrets $Secrets
+        if ($LASTEXITCODE -ne 0) { throw 'deploy failed' }
+    } finally { Pop-Location }
+}
+
+function Get-RuntimeServiceAccount {
+    <#  Cloud Run runs as the project's default compute service account. Both
+        the deploy and the tunnel have to name it to grant it a secret. #>
+    param([Parameter(Mandatory)][string]$Project)
+    $number = (& gcloud projects describe $Project --format='value(projectNumber)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
+    return "$number-compute@developer.gserviceaccount.com"
+}
+
+function Publish-Secret {
+    <#  Store a value in Secret Manager and let Cloud Run read it.
+
+        Used for the Groq key and for the tunnel token, for the same reason in
+        both cases: a secret passed with --set-env-vars is recorded in the
+        service's revision history and in shell history, and neither forgets. #>
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Value,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][string]$ServiceAccount
+    )
+
+    $exists = (& gcloud secrets describe $Name --project $Project 2>$null)
+    if (-not $exists) {
+        Write-Host "==> creating secret $Name" -ForegroundColor Cyan
+        & gcloud secrets create $Name --replication-policy=automatic --project $Project | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "creating $Name failed" }
+    }
+
+    Write-Host "==> storing a version of $Name" -ForegroundColor Cyan
+    $tmp = Join-Path $env:TEMP "$Name.txt"
+    try {
+        # -NoNewline: a trailing newline becomes part of the secret and the
+        # Authorization header then carries it, which fails as a 401 that looks
+        # nothing like its cause.
+        Set-Content -Path $tmp -Value $Value -NoNewline -Encoding ascii
+        & gcloud secrets versions add $Name --data-file=$tmp --project $Project | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "storing $Name failed" }
+    } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
+
+    Write-Host "==> granting $ServiceAccount access to $Name" -ForegroundColor Cyan
+    & gcloud secrets add-iam-policy-binding $Name `
+        --member="serviceAccount:$ServiceAccount" --role='roles/secretmanager.secretAccessor' `
+        --project $Project 2>&1 | Out-Null
+}
+
+function Get-OrCreateTunnelToken {
+    <#  The bearer token the two ends of the tunnel share.
+
+        Generated once and kept in backend/.env, which is gitignored. Stable
+        across demos on purpose: the hostname changes every run, the secret does
+        not, so Cloud Run only ever has to be told the new address. #>
+    param([Parameter(Mandatory)][string]$EnvFile)
+
+    if (Test-Path $EnvFile) {
+        $line = Select-String -Path $EnvFile -Pattern '^ONEMIND_OLLAMA_AUTH_TOKEN=(.+)$'
+        if ($line) { return $line.Matches[0].Groups[1].Value.Trim() }
+    }
+
+    # 32 bytes from the OS CSPRNG, hex encoded. Nothing derives this, so its
+    # only job is to be long enough that finding the URL buys nothing.
+    $bytes = New-Object byte[] 32
+    ([System.Security.Cryptography.RandomNumberGenerator]::Create()).GetBytes($bytes)
+    $token = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+
+    $existing = ''
+    if (Test-Path $EnvFile) { $existing = Get-Content -Raw -Path $EnvFile }
+    if ($existing -and -not $existing.EndsWith("`n")) { $existing += "`r`n" }
+    $existing += "ONEMIND_OLLAMA_AUTH_TOKEN=$token`r`n"
+    Set-Content -Path $EnvFile -Value $existing -NoNewline -Encoding ascii
+
+    Write-Host '==> generated ONEMIND_OLLAMA_AUTH_TOKEN into backend/.env' -ForegroundColor Cyan
+    return $token
 }
 
 switch ($Task) {
@@ -209,57 +332,12 @@ switch ($Task) {
         }
         if (-not $key) { throw "No Groq key. Set ONEMIND_GROQ_API_KEY or put it in backend/.env" }
 
-        $exists = (& gcloud secrets describe $SecretName --project $project 2>$null)
-        if (-not $exists) {
-            Write-Host "==> creating secret $SecretName" -ForegroundColor Cyan
-            & gcloud secrets create $SecretName --replication-policy=automatic --project $project
-            if ($LASTEXITCODE -ne 0) { throw 'secret creation failed' }
-        }
+        $sa = Get-RuntimeServiceAccount -Project $project
+        Publish-Secret -Name $SecretName -Value $key -Project $project -ServiceAccount $sa
 
-        Write-Host '==> storing key version' -ForegroundColor Cyan
-        $tmp = Join-Path $env:TEMP 'onemind-groq-key.txt'
-        try {
-            # -NoNewline: a trailing newline becomes part of the secret and the
-            # Authorization header then carries it, which fails as a 401 that
-            # looks nothing like its cause.
-            Set-Content -Path $tmp -Value $key -NoNewline -Encoding ascii
-            & gcloud secrets versions add $SecretName --data-file=$tmp --project $project
-            if ($LASTEXITCODE -ne 0) { throw 'storing the key failed' }
-        } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
-
-        # Cloud Run runs as the default compute service account, which cannot
-        # read secrets until told it may.
-        $number = (& gcloud projects describe $project --format='value(projectNumber)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
-        $sa = "$number-compute@developer.gserviceaccount.com"
-        Write-Host "==> granting $sa access to $SecretName" -ForegroundColor Cyan
-        & gcloud secrets add-iam-policy-binding $SecretName `
-            --member="serviceAccount:$sa" --role='roles/secretmanager.secretAccessor' `
-            --project $project 2>&1 | Out-Null
-
-        # Source-based deploys upload a zip to a staging bucket and have Cloud
-        # Build read it back. On projects created after mid-2024 the default
-        # compute service account is not granted that access, and the failure
-        # arrives as a 403 on `storage.objects.get` for a bucket you never named
-        # - which reads like a bug rather than a missing role.
-        Write-Host '==> granting the build service account its role' -ForegroundColor Cyan
-        & gcloud projects add-iam-policy-binding $project `
-            --member="serviceAccount:$sa" --role='roles/cloudbuild.builds.builder' `
-            --condition=None --verbosity=error 2>&1 | Out-Null
-
-        Write-Host '==> building and deploying' -ForegroundColor Cyan
-        & gcloud run deploy $Service `
-            --source . `
-            --region $Region `
-            --project $project `
-            --allow-unauthenticated `
-            --port 8080 `
-            --memory 1Gi `
-            --timeout 300 `
-            --min-instances 0 `
-            --max-instances 1 `
-            --set-env-vars 'ONEMIND_LLM_PROVIDER=groq' `
-            --set-secrets "ONEMIND_GROQ_API_KEY=${SecretName}:latest"
-        if ($LASTEXITCODE -ne 0) { throw 'deploy failed' }
+        Deploy-Service -Service $Service -Project $project -Region $Region -ServiceAccount $sa `
+            -EnvVars 'ONEMIND_LLM_PROVIDER=groq' `
+            -Secrets "ONEMIND_GROQ_API_KEY=${SecretName}:latest" -Root $Root
 
         $url = (& gcloud run services describe $Service --region $Region --project $project --format='value(status.url)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
         Write-Host ''
@@ -268,6 +346,197 @@ switch ($Task) {
         Write-Host ''
         Write-Host '  min-instances is 0, so the first hit pays a cold start.' -ForegroundColor Yellow
         Write-Host '  Load the URL once before demoing.' -ForegroundColor Yellow
+        Write-Host ''
+    }
+
+    # Point the hosted service at this laptop's GPU for the length of a demo.
+    #
+    # Cloud Run has no free GPU, so the deployed build normally runs on Groq
+    # (decision 25) and lives inside a free tier's token budget. During a live
+    # walkthrough that budget is the wrong constraint, and the machine giving
+    # the demo already has the weights resident. This opens a tunnel and
+    # repoints the running service at it, so the hosted link runs the same
+    # qwen3.5:4b the eval numbers were measured on, with no per-minute cap.
+    #
+    # What is exposed is `llm/gateway.py`, never Ollama: two routes, behind a
+    # bearer token. Ollama stays on loopback.
+    #
+    # Reverting is `./run.ps1 deploy`, which uses --set-env-vars and so drops
+    # every variable this task added along with the tunnel binding.
+    'tunnel' {
+        # gcloud and cloudflared both log to stderr; see the note in 'deploy'.
+        $ErrorActionPreference = 'Continue'
+
+        $Service = 'onemind'
+        $Region = if ($env:ONEMIND_GCP_REGION) { $env:ONEMIND_GCP_REGION } else { 'us-central1' }
+        $TokenSecret = 'onemind-ollama-token'
+        $EnvFile = Join-Path $Backend '.env'
+        $GatewayPort = 11435
+
+        # --- the local half --------------------------------------------------
+
+        try {
+            $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/version' -TimeoutSec 4
+        } catch {
+            throw 'Ollama is not answering on :11434. Start it, then run this again.'
+        }
+
+        $tags = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 6
+        if (-not ($tags.models | Where-Object { $_.name -eq $Model })) {
+            throw "$Model is not pulled. Run: ollama pull $Model"
+        }
+
+        $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
+        if (-not $cf) {
+            throw 'cloudflared not found. Install it once: winget install --id Cloudflare.cloudflared'
+        }
+
+        $token = Get-OrCreateTunnelToken -EnvFile $EnvFile
+        $headers = @{ Authorization = "Bearer $token" }
+
+        # A cold load is this system's worst failure mode, and a tunnel does not
+        # make it faster. keep_alive travels in the request rather than in the
+        # environment, because the server is usually already running by now and
+        # would never see a variable set here.
+        Write-Host '==> warming the model' -ForegroundColor Cyan
+        $warm = @{
+            model      = $Model
+            messages   = @(@{ role = 'user'; content = 'ok' })
+            stream     = $false
+            keep_alive = -1
+        } | ConvertTo-Json -Depth 4
+        try {
+            Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/chat' -Method Post `
+                -Body $warm -ContentType 'application/json' -TimeoutSec 240 | Out-Null
+        } catch { Write-Warning 'could not warm the model; the first hosted turn will pay for it' }
+
+        Write-Host "==> starting the gateway on :$GatewayPort" -ForegroundColor Cyan
+        Start-Process -FilePath 'powershell' -ArgumentList @(
+            '-NoExit', '-Command', "Set-Location '$Backend'; & '$VenvPy' -m onemind.llm.gateway"
+        )
+
+        $gatewayUp = $false
+        foreach ($attempt in 1..20) {
+            try {
+                $null = Invoke-RestMethod -Uri "http://127.0.0.1:$GatewayPort/api/version" `
+                    -Headers $headers -TimeoutSec 3
+                $gatewayUp = $true
+                break
+            } catch { Start-Sleep -Milliseconds 500 }
+        }
+        if (-not $gatewayUp) { throw "the gateway did not answer on :$GatewayPort" }
+
+        # --- the tunnel ------------------------------------------------------
+        #
+        # A quick tunnel: no Cloudflare account, no domain, and a fresh hostname
+        # every run - which is why this task ends by telling Cloud Run the new
+        # one rather than assuming a stable address.
+
+        $log = Join-Path $env:TEMP 'onemind-cloudflared.log'
+        Remove-Item $log -ErrorAction SilentlyContinue
+        Write-Host '==> opening the tunnel' -ForegroundColor Cyan
+        Start-Process -FilePath $cf.Source -WindowStyle Minimized -RedirectStandardError $log `
+            -ArgumentList @('tunnel', '--no-autoupdate', '--url', "http://127.0.0.1:$GatewayPort")
+
+        $public = ''
+        foreach ($attempt in 1..40) {
+            Start-Sleep -Milliseconds 500
+            if (-not (Test-Path $log)) { continue }
+            $hit = $null
+            try {
+                $hit = Select-String -Path $log -Pattern 'https://[a-z0-9-]+[.]trycloudflare[.]com' |
+                    Select-Object -First 1
+            } catch { continue }   # cloudflared still holds the file open
+            if ($hit) { $public = $hit.Matches[0].Value; break }
+        }
+        if (-not $public) { throw "cloudflared reported no URL. See $log" }
+
+        # --- prove both halves before handing the address to the internet ----
+
+        Write-Host "==> verifying $public" -ForegroundColor Cyan
+
+        # A fresh quick-tunnel hostname takes a few seconds to resolve, so this
+        # is retried rather than raced. The first version of this check ran once
+        # with $ErrorActionPreference set to Continue, which meant a DNS failure
+        # printed an error and carried on to publish a tunnel it had never
+        # reached.
+        $version = $null
+        foreach ($attempt in 1..20) {
+            try {
+                $version = Invoke-RestMethod -Uri "$public/api/version" -Headers $headers `
+                    -TimeoutSec 20 -ErrorAction Stop
+                break
+            } catch { Start-Sleep -Seconds 2 }
+        }
+        if (-not $version) { throw "no answer from $public; the tunnel is not carrying traffic" }
+        Write-Host "    ollama $($version.version) answered through the tunnel" -ForegroundColor Green
+
+        # The safety argument for a public URL is that it is useless without the
+        # token, so the refusal has to be observed rather than assumed. A network
+        # error is not a refusal - counting one as proof is how an open tunnel
+        # gets published on a hostname that simply had not resolved yet.
+        $status = 0
+        try {
+            Invoke-WebRequest -Uri "$public/api/version" -TimeoutSec 20 -UseBasicParsing `
+                -ErrorAction Stop | Out-Null
+            throw 'the tunnel answered an unauthenticated request; refusing to publish it'
+        } catch [System.Net.WebException] {
+            if ($_.Exception.Response) { $status = [int]$_.Exception.Response.StatusCode }
+        }
+        if ($status -ne 401) {
+            throw "an unauthenticated request returned $status rather than 401; refusing to publish"
+        }
+        Write-Host '    an unauthenticated request is refused with 401' -ForegroundColor Green
+
+        # --- the hosted half -------------------------------------------------
+
+        $project = (& gcloud config get-value project --verbosity=error 2>$null | Select-Object -Last 1)
+        if (-not $project -or $project -eq '(unset)') { throw 'No gcloud project set. Run: gcloud init' }
+        $project = $project.ToString().Trim()
+
+        $sa = Get-RuntimeServiceAccount -Project $project
+        Publish-Secret -Name $TokenSecret -Value $token -Project $project -ServiceAccount $sa
+
+        # A source build, not `gcloud run services update`. Updating environment
+        # variables leaves the image alone, and an image built before the
+        # provider learned to send a bearer token gets a 401 from its own
+        # gateway - which is what happened the first time this ran.
+        #
+        # --set-secrets, not --update-secrets: this drops the Groq key binding,
+        # so the hosted build has no hosted provider wired up at all while it is
+        # pointed here. `./run.ps1 deploy` puts it back.
+        Deploy-Service -Service $Service -Project $project -Region $Region -ServiceAccount $sa `
+            -EnvVars "ONEMIND_LLM_PROVIDER=ollama,ONEMIND_OLLAMA_HOST=$public" `
+            -Secrets "ONEMIND_OLLAMA_AUTH_TOKEN=${TokenSecret}:latest" -Root $Root
+
+        $url = (& gcloud run services describe $Service --region $Region --project $project --format='value(status.url)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
+
+        # One real turn, hosted service to this machine and back. /api/health
+        # only reports which provider was *selected*; it does not prove the
+        # container can reach the tunnel, so a wrong image or a stale token
+        # would still read as healthy. This is the check that fails here rather
+        # than in front of an audience.
+        Write-Host '==> asking the hosted service a real question' -ForegroundColor Cyan
+        $probe = @{ message = 'Which patients are enrolled in remote monitoring?' } | ConvertTo-Json
+        $answer = Invoke-WebRequest -Uri "$url/api/chat/stream" -Method Post -Body $probe `
+            -ContentType 'application/json' -TimeoutSec 300 -UseBasicParsing
+        if ($answer.Content -match 'event: error') {
+            $detail = ($answer.Content -split "`n" | Select-String -Pattern '"message"' |
+                Select-Object -First 1)
+            throw "the hosted service could not complete a turn: $detail"
+        }
+        Write-Host '    a full turn completed through the tunnel' -ForegroundColor Green
+
+        Write-Host ''
+        Write-Host "  hosted:  $url" -ForegroundColor Green
+        Write-Host "  health:  $url/api/health   (expect provider=ollama)" -ForegroundColor Green
+        Write-Host "  tunnel:  $public" -ForegroundColor Green
+        Write-Host ''
+        Write-Host '  Leave the gateway window and the cloudflared window open.' -ForegroundColor Yellow
+        Write-Host '  Closing either ends the demo, and the URL is not reusable.' -ForegroundColor Yellow
+        Write-Host '  Fan-out is only real if Ollama was started with' -ForegroundColor Yellow
+        Write-Host '  OLLAMA_NUM_PARALLEL=4; otherwise four specialists queue.' -ForegroundColor Yellow
+        Write-Host '  Put Groq back with: ./run.ps1 deploy' -ForegroundColor Yellow
         Write-Host ''
     }
 

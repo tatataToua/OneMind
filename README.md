@@ -152,6 +152,44 @@ platform. [Decision 25](docs/decisions.md) works through the alternatives,
 including the one that would have preserved the no-network claim and why it was
 still the wrong trade.
 
+### Borrow this machine's GPU for a live demo
+
+Groq is what keeps the link working when nobody is watching. During a demo the
+constraint inverts: the free tier's 8000 tokens a minute is the scarce thing,
+and the GPU standing in the room is not. `tunnel` points the deployed service at
+local Ollama for the length of the walkthrough.
+
+```powershell
+winget install --id Cloudflare.cloudflared   # once
+./run.ps1 tunnel
+```
+
+It warms the model, starts the gateway, opens a Cloudflare quick tunnel, checks
+that the tunnel answers with the token and refuses a request without one, then
+builds and deploys from source pointed at that tunnel. It finishes by asking the
+hosted service a real question and failing if the turn does not complete, so a
+broken path surfaces here rather than in front of an audience. Budget a few
+minutes for the build.
+
+It is a full deploy rather than a `gcloud run services update` on purpose: an
+update changes environment variables and leaves the image alone, and an image
+older than the token-aware provider gets a 401 from its own gateway.
+
+The deploy also drops the Groq key binding, so while the tunnel is up there is
+no hosted provider wired in at all. `./run.ps1 deploy` puts Groq back.
+
+What the tunnel exposes is [`llm/gateway.py`](backend/src/onemind/llm/gateway.py),
+not Ollama: two routes behind a bearer token, with Ollama still bound to
+loopback. Ollama has no authentication of its own and its API includes
+`/api/delete`, so publishing 11434 would publish model management along with
+inference. [Decision 26](docs/decisions.md) has the rest of the reasoning.
+
+Two things to know before demoing this way. Both the gateway window and the
+cloudflared window have to stay open, and the hostname is fresh every run, so
+the task has to be re-run - and the service re-pointed - for each demo. And
+fan-out is only real if Ollama was started with `OLLAMA_NUM_PARALLEL=4`;
+otherwise the four specialists queue behind one slot.
+
 ---
 
 ## Verify it works
@@ -458,7 +496,10 @@ All settings take an `ONEMIND_` prefix.
 | `ONEMIND_OLLAMA_MODEL` | `qwen3.5:4b` | raise on a larger GPU |
 | `ONEMIND_GROQ_API_KEY` | — | required when the provider is `groq`; fails at construction if unset |
 | `ONEMIND_GROQ_MODEL` | `qwen/qwen3.8-27b` | must offer strict-mode structured outputs, or routing loses its decode-time guarantee |
-| `ONEMIND_GROQ_MAX_RETRIES` | `3` | backoff on 429/5xx; a 400 is never retried |
+| `ONEMIND_GROQ_MAX_RETRIES` | `6` | backoff on 429/5xx; a 400 is never retried |
+| `ONEMIND_OLLAMA_HOST` | `http://127.0.0.1:11434` | the tunnel URL during a borrowed-GPU demo |
+| `ONEMIND_OLLAMA_AUTH_TOKEN` | — | bearer token for the gateway; empty for a purely local run |
+| `ONEMIND_OLLAMA_GATEWAY_PORT` | `11435` | what the tunnel points at; Ollama keeps 11434 |
 | `ONEMIND_STATIC_DIR` | — | built frontend for the API to serve at `/`; set by the container, empty in development |
 | `ONEMIND_OLLAMA_NUM_CTX` | `16384` | capped well below the 256K ceiling to fit four slots in 8 GB |
 | `ONEMIND_MAX_PARALLEL_AGENTS` | `4` | match `OLLAMA_NUM_PARALLEL` |
