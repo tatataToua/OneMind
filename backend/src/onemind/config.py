@@ -97,5 +97,11 @@ class Settings(BaseSettings):
     # --- data ---------------------------------------------------------------
     fixtures_dir: str = "fixtures"
 
+    # --- serving ------------------------------------------------------------
+    # Built frontend for the API to serve at "/". Empty in development, where
+    # Vite owns the UI and proxies /api here. The container sets it, which is
+    # what collapses the two origins into one and retires CORS in production.
+    static_dir: str = ""
+
 
 settings = Settings()

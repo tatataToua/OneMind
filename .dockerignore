@@ -1,0 +1,23 @@
+# Build context hygiene. The backend virtualenv alone is hundreds of megabytes
+# of Windows-specific binaries that would be copied into a Linux image and then
+# shadow the one uv builds inside it.
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.tsbuildinfo
+
+# Always build the frontend inside the image rather than shipping whatever was
+# last built on the developer's machine.
+frontend/dist/
+
+.git/
+.github/
+.claude/
+_bmad/
+docs/
+evals/
+run.ps1
+**/.env

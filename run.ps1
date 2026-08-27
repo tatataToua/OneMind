@@ -21,10 +21,11 @@
   ./run.ps1 conv       # multi-turn eval: memory + two-wave dispatch
   ./run.ps1 compare    # router vs monolith baseline (needs Ollama)
   ./run.ps1 check      # pre-demo readiness check
+  ./run.ps1 deploy     # build and ship to Cloud Run (needs gcloud)
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check')]
+    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check', 'deploy')]
     [string]$Task = 'check'
 )
 
@@ -167,6 +168,107 @@ switch ($Task) {
         Write-Host '==> starting UI on :5173' -ForegroundColor Cyan
         Push-Location $Frontend
         try { & npm run dev } finally { Pop-Location }
+    }
+
+    # Ship to Cloud Run. Source-based: Cloud Build builds the Dockerfile, so
+    # Docker is not needed locally - which matters on the Smart App Control box
+    # this file already works around elsewhere.
+    'deploy' {
+        # gcloud writes its "Your active configuration is: [...]" banner and all
+        # build progress to stderr. Under the $ErrorActionPreference = 'Stop'
+        # set at the top of this file, PowerShell 5.1 wraps any native stderr
+        # line in a NativeCommandError and throws - so a completely successful
+        # deploy dies on its own status message. Exit codes are checked
+        # explicitly in this block instead, which is the stronger signal anyway.
+        $ErrorActionPreference = 'Continue'
+
+        $Service = 'onemind'
+        # us-central1 is not arbitrary: Cloud Run's always-free allowance only
+        # applies in a handful of US regions, and this is one of them.
+        $Region = if ($env:ONEMIND_GCP_REGION) { $env:ONEMIND_GCP_REGION } else { 'us-central1' }
+        $SecretName = 'onemind-groq-key'
+
+        # `--verbosity=error` silences the configuration banner; without it the
+        # banner lands in $project and every later --project flag is malformed.
+        $project = (& gcloud config get-value project --verbosity=error 2>$null | Select-Object -Last 1)
+        if (-not $project -or $project -eq '(unset)') {
+            throw 'No gcloud project set. Run: gcloud init'
+        }
+        $project = $project.ToString().Trim()
+        Write-Host "==> project $project / region $Region" -ForegroundColor Cyan
+
+        # The key lives in Secret Manager rather than in --set-env-vars, so it
+        # is not recorded in the service's revision history or in shell history.
+        $key = $env:ONEMIND_GROQ_API_KEY
+        if (-not $key) {
+            $envFile = Join-Path $Backend '.env'
+            if (Test-Path $envFile) {
+                $line = Select-String -Path $envFile -Pattern '^ONEMIND_GROQ_API_KEY=(.+)$'
+                if ($line) { $key = $line.Matches[0].Groups[1].Value.Trim() }
+            }
+        }
+        if (-not $key) { throw "No Groq key. Set ONEMIND_GROQ_API_KEY or put it in backend/.env" }
+
+        $exists = (& gcloud secrets describe $SecretName --project $project 2>$null)
+        if (-not $exists) {
+            Write-Host "==> creating secret $SecretName" -ForegroundColor Cyan
+            & gcloud secrets create $SecretName --replication-policy=automatic --project $project
+            if ($LASTEXITCODE -ne 0) { throw 'secret creation failed' }
+        }
+
+        Write-Host '==> storing key version' -ForegroundColor Cyan
+        $tmp = Join-Path $env:TEMP 'onemind-groq-key.txt'
+        try {
+            # -NoNewline: a trailing newline becomes part of the secret and the
+            # Authorization header then carries it, which fails as a 401 that
+            # looks nothing like its cause.
+            Set-Content -Path $tmp -Value $key -NoNewline -Encoding ascii
+            & gcloud secrets versions add $SecretName --data-file=$tmp --project $project
+            if ($LASTEXITCODE -ne 0) { throw 'storing the key failed' }
+        } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
+
+        # Cloud Run runs as the default compute service account, which cannot
+        # read secrets until told it may.
+        $number = (& gcloud projects describe $project --format='value(projectNumber)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
+        $sa = "$number-compute@developer.gserviceaccount.com"
+        Write-Host "==> granting $sa access to $SecretName" -ForegroundColor Cyan
+        & gcloud secrets add-iam-policy-binding $SecretName `
+            --member="serviceAccount:$sa" --role='roles/secretmanager.secretAccessor' `
+            --project $project 2>&1 | Out-Null
+
+        # Source-based deploys upload a zip to a staging bucket and have Cloud
+        # Build read it back. On projects created after mid-2024 the default
+        # compute service account is not granted that access, and the failure
+        # arrives as a 403 on `storage.objects.get` for a bucket you never named
+        # - which reads like a bug rather than a missing role.
+        Write-Host '==> granting the build service account its role' -ForegroundColor Cyan
+        & gcloud projects add-iam-policy-binding $project `
+            --member="serviceAccount:$sa" --role='roles/cloudbuild.builds.builder' `
+            --condition=None --verbosity=error 2>&1 | Out-Null
+
+        Write-Host '==> building and deploying' -ForegroundColor Cyan
+        & gcloud run deploy $Service `
+            --source . `
+            --region $Region `
+            --project $project `
+            --allow-unauthenticated `
+            --port 8080 `
+            --memory 1Gi `
+            --timeout 300 `
+            --min-instances 0 `
+            --max-instances 1 `
+            --set-env-vars 'ONEMIND_LLM_PROVIDER=groq' `
+            --set-secrets "ONEMIND_GROQ_API_KEY=${SecretName}:latest"
+        if ($LASTEXITCODE -ne 0) { throw 'deploy failed' }
+
+        $url = (& gcloud run services describe $Service --region $Region --project $project --format='value(status.url)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
+        Write-Host ''
+        Write-Host "  deployed: $url" -ForegroundColor Green
+        Write-Host "  health:   $url/api/health" -ForegroundColor Green
+        Write-Host ''
+        Write-Host '  min-instances is 0, so the first hit pays a cold start.' -ForegroundColor Yellow
+        Write-Host '  Load the URL once before demoing.' -ForegroundColor Yellow
+        Write-Host ''
     }
 
     'test' { Invoke-Py @('-m', 'pytest', '-q') }

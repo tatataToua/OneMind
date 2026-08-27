@@ -701,3 +701,74 @@ looks more like something the user said.
 **Cost.** One subject at a time. Facts follow the most recently resolved
 patient, and naming a different one drops the previous one's identifiers. A
 question genuinely spanning two patients is not supported.
+
+---
+
+## 25. Hosted inference is allowed because redaction happens first
+
+**Decision.** The deployed build runs on Groq, not on the laptop's Ollama. The
+README's original claim — no API keys, no network calls, no data leaving the
+machine — is retired for that build and kept for the default one.
+`ONEMIND_LLM_PROVIDER` chooses; nothing above `llm/base.py` changes.
+
+**Why this is not a betrayal of the design.** The PHI guardrail (#4) already
+assumed the model was untrusted. Identifiers become placeholder tokens before
+any prompt is built and are rehydrated at the tool boundary, inside the process,
+after the model has answered. That was never a defence against the network; it
+was a defence against the *model*, and a remote model is the same threat with
+more hops. If the redaction boundary is real, hosting is a deployment detail. If
+it is not, running locally was never the thing keeping the data safe.
+
+The honest version of that argument names its limit: a hosted provider sees the
+redacted prompt, which still carries the clinical substance of the question. It
+does not see who it is about. For synthetic fixtures that is a non-issue; for
+real PHI it is a Business Associate Agreement, and Groq's free tier is not one.
+
+**Why Groq rather than a frontier API.** Groq serves open-weight models, so
+`groq_model` stays in the Qwen family the local build uses. That keeps two
+things alive that a proprietary model would have quietly killed: decision 7
+("why the 4B, not the 9B") continues to mean something, and the router-vs-
+monolith comparison keeps measuring *this architecture* rather than the gap
+between a 4B open model and somebody's frontier system. The eval numbers move
+because the model got bigger, and both arms move together.
+
+**Why not GCP's own free tier for the model.** There isn't one. Always Free is a
+1 GB `e2-micro`; the weights alone need four and a half. Cloud Run has no free
+GPU. Oracle's Always Free ARM box has enough RAM and would have preserved the
+no-network claim outright, but it is two cores with no accelerator — a full
+orchestration lands in the minutes, and `./run.ps1 check` exists precisely
+because a slow model mid-demo is this system's worst failure mode. Preserving
+the claim by making the thing unusable is not preserving much.
+
+**What strict mode cost.** Groq's structured outputs are a real constrained
+decode — the same guarantee Ollama's `format` gives, and routing accuracy
+depends on having it rather than parsing hopefully. But strict mode rejects the
+JSON Schema Pydantic emits: every property must appear in `required`, and every
+object must set `additionalProperties: false`. `RoutingDecision` gives most of
+its fields defaults, so Pydantic omits them from `required` and the API refuses
+the whole request. `_strictify` rewrites the schema recursively, `$defs`
+included. It is ten lines and it is the only reason any of this works.
+
+**What the free tier cost.** Thirty requests a minute. One orchestration is a
+router call plus up to four specialists plus a synthesis, so a demo where
+someone clicks twice crosses it, and the eval harness crosses it by itself. A
+429 that reaches the orchestrator becomes a 500 the clinician cannot act on, so
+`_send` retries on 429 and 5xx with exponential backoff, preferring `Retry-After`
+when Groq sends one. A 400 is never retried: strict mode refusing a schema is
+not a transient condition, and repeating it buries the message that says what to
+fix.
+
+**Known gap.** The retry covers `complete` and `structured`, which is the router,
+the specialist plans and the specialist answers. It does not cover `stream`,
+which is the final synthesis — a rate limit landing there still surfaces as an
+error. Synthesis is one call of roughly seven and is skipped entirely for a
+single-specialist answer (#10), so this is the least likely place to be refused,
+but it is a gap and not a decision.
+
+**Cost.** The local build stays the default and stays honest; the hosted build
+trades the network claim for being clickable from a link. Session memory is
+still in-process (#23), so Cloud Run runs with `--max-instances 1` — a second
+instance would strand half the conversations and break the two-wave dispatch
+(#22) intermittently rather than visibly. That ceiling is the deployment's real
+scaling limit, and moving past it means moving session state out of the process,
+which is a different project.

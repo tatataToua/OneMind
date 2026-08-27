@@ -15,11 +15,13 @@ import json
 import logging
 import uuid
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from ..bootstrap import default_conversations, default_orchestrator
@@ -131,12 +133,26 @@ class ChatRequest(BaseModel):
         return value
 
 
+def resolve_active_model() -> str:
+    """Name the model actually in use, whichever provider is selected.
+
+    Health is the first thing checked after a deploy. Reporting the Ollama
+    model from a container that talks to Groq sends you debugging the wrong
+    half of the system, so this follows `llm_provider` rather than assuming.
+    """
+    return {
+        "ollama": settings.ollama_model,
+        "groq": settings.groq_model,
+        "bedrock": settings.bedrock_model_id,
+    }.get(settings.llm_provider.lower(), "unknown")
+
+
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "provider": settings.llm_provider,
-        "model": settings.ollama_model,
+        "model": resolve_active_model(),
         "agents": registry.keys(),
         "phi_redaction": settings.phi_redaction_enabled,
     }
@@ -253,3 +269,33 @@ def _error_response(
 
 def _sse(event: str, data: Any) -> str:
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
+
+
+# --- the built frontend ------------------------------------------------------
+#
+# In development the UI is served by Vite on another origin and reaches this API
+# through its proxy. In a container there is no Vite, so the API serves the build
+# itself and the whole app becomes one origin - which is also why the CORS policy
+# above stops mattering in production rather than needing to be widened for it.
+#
+# Mounted last on purpose: the mount claims "/", and Starlette matches routes in
+# registration order, so every /api/* route above must already be registered.
+
+
+def _frontend_directory(path: str) -> Path | None:
+    """Resolve a servable build directory, or None to skip mounting.
+
+    An unset path means local development. A path that exists but holds no
+    `index.html` means the frontend build failed and left an empty directory;
+    mounting that would serve 404s that read like a routing bug, so it is
+    refused here where the cause is still obvious.
+    """
+    if not path:
+        return None
+    directory = Path(path)
+    return directory if (directory / "index.html").is_file() else None
+
+
+_frontend = _frontend_directory(settings.static_dir)
+if _frontend is not None:
+    app.mount("/", StaticFiles(directory=_frontend, html=True), name="frontend")

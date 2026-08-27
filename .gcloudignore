@@ -1,0 +1,25 @@
+# What gets uploaded to Cloud Build. Without this file gcloud generates one from
+# .gitignore, which would ship the agent tooling and the eval corpus on every
+# deploy - a slower upload for files the image does not use.
+#
+# This is not the same list as .dockerignore: that one trims the build context
+# inside Cloud Build, this one trims what leaves the machine at all.
+
+.git/
+.github/
+.claude/
+_bmad/
+docs/
+evals/
+
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.tsbuildinfo
+frontend/dist/
+
+# Never upload the key. It reaches the container through Secret Manager.
+**/.env
