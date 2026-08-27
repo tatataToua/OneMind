@@ -345,3 +345,33 @@ def test_a_patient_hint_lists_only_their_own_metrics() -> None:
     result = telemetry_series(patient_id=device["patient_id"], metric="glucose")
     assert result["found"] is False
     assert set(result["available_metrics"]) == theirs
+
+
+@pytest.mark.asyncio
+async def test_integer_argument_survives_model_punctuation() -> None:
+    """Observed live: qwen emitted `days: "{7}"` - the value it meant, still
+    wrapped in the braces of the template it was copying - and `telemetry_series`
+    raised a TypeError the specialist then reported to the user as a system
+    error. The schema declares the type; the boundary now enforces it."""
+    result = await tools.get("telemetry_series").call(patient_id="13788", metric="spo2", days="{7}")
+    assert result["found"]
+    assert result["series"][0]["window_days"] == 7
+
+
+@pytest.mark.asyncio
+async def test_uncoercible_integer_falls_back_to_the_default() -> None:
+    """Dropping the argument answers the question asked. Passing the junk
+    through answers nothing."""
+    result = await tools.get("telemetry_series").call(
+        patient_id="13788", metric="spo2", days="recently"
+    )
+    assert result["found"]
+    assert result["series"][0]["window_days"] == 14
+
+
+@pytest.mark.asyncio
+async def test_string_argument_accepts_a_bare_number() -> None:
+    """A patient id emitted as JSON `12345` rather than `"12345"` is the same
+    lookup key, and the store compares strings."""
+    result = await tools.get("fhir_search_patient").call(patient_id=12345)
+    assert result["found"]

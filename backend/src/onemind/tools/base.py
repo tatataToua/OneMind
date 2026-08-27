@@ -9,9 +9,13 @@ rather than merely discouraged.
 from __future__ import annotations
 
 import inspect
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+# Leading sign and digits anywhere inside whatever the model actually emitted.
+_INT = re.compile(r"-?\d+")
 
 
 @dataclass(frozen=True)
@@ -22,10 +26,44 @@ class Tool:
     fn: Callable[..., Any]
 
     async def call(self, **kwargs: Any) -> Any:
-        result = self.fn(**kwargs)
+        result = self.fn(**self._coerce(kwargs))
         if inspect.isawaitable(result):
             return await result
         return result
+
+    def _coerce(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Bring arguments to the types the schema already declares.
+
+        Constrained decoding makes a schema violation unrepresentable in
+        principle. In practice a 4B model reached `telemetry_series` with
+        `days: "{7}"` - the value it meant, wrapped in the braces of the
+        template it was copying - and `min(days, 21)` raised
+        `'<' not supported between instances of 'int' and 'str'`. The
+        specialist then reported a system error to the user for a request that
+        was otherwise fine, because the only thing wrong with it was punctuation
+        around a number.
+
+        So the schema is enforced here rather than assumed. A value that cannot
+        be coerced is dropped instead of passed through: every such parameter
+        has a default, and falling back to it answers the question asked, where
+        a `TypeError` answers nothing. Values are never invented - a dropped
+        argument is one the model failed to supply, which is a case the tools
+        already handle.
+        """
+        properties = self.parameters.get("properties", {})
+        out: dict[str, Any] = {}
+        for key, value in kwargs.items():
+            declared = properties.get(key, {}).get("type")
+            if declared == "integer" and not isinstance(value, int):
+                digits = _INT.search(str(value))
+                if digits is None:
+                    continue
+                out[key] = int(digits.group())
+            elif declared == "string" and not isinstance(value, str):
+                out[key] = str(value)
+            else:
+                out[key] = value
+        return out
 
     def spec(self) -> dict[str, Any]:
         """Model-facing description, without the callable."""
