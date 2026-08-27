@@ -91,6 +91,24 @@ export interface StreamHandlers {
   onError(message: string): void;
 }
 
+/**
+ * What the server is actually running. The environment chips in the header
+ * render from this rather than from constants, because the same build serves
+ * a local Ollama model and a hosted Groq one and only the server knows which.
+ */
+export interface Health {
+  status: string;
+  provider: string;
+  model: string;
+  agents: string[];
+  phi_redaction: boolean;
+}
+
+export async function fetchHealth(): Promise<Health> {
+  const res = await fetch("/api/health");
+  return await res.json();
+}
+
 export async function fetchAgents(): Promise<AgentInfo[]> {
   const res = await fetch("/api/agents");
   return (await res.json()).agents;

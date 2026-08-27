@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import MedicalView from "./views/MedicalView";
 import DeveloperView from "./views/DeveloperView";
 import { useOrchestrator } from "./useOrchestrator";
+import type { Health } from "./api";
 import { IconFlow, IconMedicalCross, IconPulse, IconShield } from "./icons";
 
 type Tab = "medical" | "developer";
@@ -18,6 +19,25 @@ const TABS: { id: Tab; label: string; Icon: typeof IconPulse }[] = [
   { id: "developer", label: "Developer", Icon: IconFlow },
 ];
 
+/**
+ * The header's environment chips, derived from `/api/health` rather than
+ * written in. The same build runs on a local Ollama model and on hosted Groq,
+ * and the model can be swapped by environment variable alone - a chip naming
+ * the wrong one is worse than no chip. "Nothing leaves this machine" is a
+ * claim only the local provider earns, so it is conditioned the same way.
+ */
+function describeEnv(health: Health): { inference: string; safety: string; safe: boolean } {
+  const local = health.provider.toLowerCase() === "ollama";
+  if (!health.phi_redaction) {
+    return { inference: local ? "Local inference" : "Hosted inference", safety: "PHI redaction off", safe: false };
+  }
+  return {
+    inference: local ? "Local inference" : "Hosted inference",
+    safety: local ? "No PHI leaves this machine" : "PHI redacted before it leaves",
+    safe: true,
+  };
+}
+
 /** The hash is the source of truth so a tab is linkable and survives reload. */
 function tabFromHash(): Tab {
   return window.location.hash.replace(/^#\/?/, "") === "developer" ? "developer" : "medical";
@@ -26,6 +46,7 @@ function tabFromHash(): Tab {
 export default function App() {
   const o = useOrchestrator();
   const [tab, setTab] = useState<Tab>(tabFromHash);
+  const env = o.health ? describeEnv(o.health) : null;
 
   useEffect(() => {
     const sync = () => setTab(tabFromHash());
@@ -85,13 +106,15 @@ export default function App() {
         <div className="env">
           <span className={"status" + (o.online === false ? " is-down" : o.online ? " is-up" : "")}>
             <i aria-hidden />
-            {o.online === false ? "API offline" : o.online ? "Local inference" : "Connecting"}
+            {o.online === false ? "API offline" : env ? env.inference : "Connecting"}
           </span>
-          <span className="env-chip mono">qwen3.5:4b</span>
-          <span className="env-chip is-safe">
-            <IconShield size={13} />
-            No PHI leaves this machine
-          </span>
+          {o.health && <span className="env-chip mono">{o.health.model}</span>}
+          {env && (
+            <span className={"env-chip" + (env.safe ? " is-safe" : "")}>
+              <IconShield size={13} />
+              {env.safety}
+            </span>
+          )}
         </div>
       </header>
 

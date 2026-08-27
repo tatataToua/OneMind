@@ -11,10 +11,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchAgents,
   fetchExamples,
+  fetchHealth,
   streamChat,
   type AgentInfo,
   type ExampleInfo,
   type Fact,
+  type Health,
   type Outcome,
   type Span,
 } from "./api";
@@ -22,6 +24,9 @@ import {
 export interface Orchestrator {
   agents: AgentInfo[];
   examples: ExampleInfo[];
+  /** Provider and model as the server reports them. Null until the first
+   *  health call lands, and after it fails. */
+  health: Health | null;
   online: boolean | null;
   busy: boolean;
   answer: string;
@@ -40,6 +45,7 @@ export interface Orchestrator {
 export function useOrchestrator(): Orchestrator {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [examples, setExamples] = useState<ExampleInfo[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
   const [online, setOnline] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState("");
@@ -56,9 +62,13 @@ export function useOrchestrator(): Orchestrator {
   // no redaction vocabulary outlives the session that created it.
   const sessionId = useRef<string | undefined>(undefined);
 
+  // Health and the roster together: both are "is the server there and what is
+  // it", so one failure is one offline state rather than a half-populated
+  // header claiming a model it never got.
   useEffect(() => {
-    fetchAgents()
-      .then((list) => {
+    Promise.all([fetchHealth(), fetchAgents()])
+      .then(([info, list]) => {
+        setHealth(info);
         setAgents(list);
         setOnline(true);
       })
@@ -142,6 +152,7 @@ export function useOrchestrator(): Orchestrator {
   return {
     agents,
     examples,
+    health,
     online,
     busy,
     answer,
