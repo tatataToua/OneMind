@@ -27,12 +27,17 @@ def build_provider(name: str | None = None) -> LLMProvider:
 
         return OllamaProvider()
 
+    if choice == "groq":
+        from .llm.groq import GroqProvider
+
+        return GroqProvider()
+
     if choice == "bedrock":
         from .llm.bedrock import BedrockProvider
 
         return BedrockProvider()
 
-    raise ValueError(f"unknown provider {choice!r}; expected 'ollama' or 'bedrock'")
+    raise ValueError(f"unknown provider {choice!r}; expected 'ollama', 'groq' or 'bedrock'")
 
 
 def build_redactor() -> PHIRedactor:

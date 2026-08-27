@@ -28,6 +28,27 @@ class Settings(BaseSettings):
     bedrock_region: str = "us-east-1"
     bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
+    # --- groq (what the hosted deployment runs on) --------------------------
+    # No default key: an unset key must fail loudly at construction rather than
+    # send an unauthenticated request from a deployed container.
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    # Must be a model offering strict-mode structured outputs, or routing loses
+    # its decode-time guarantee and falls back to hoping. As of this writing
+    # that is qwen3.8-27b and the two gpt-oss sizes. Kept in the Qwen family on
+    # purpose so the hosted eval stays comparable to the local one.
+    groq_model: str = "qwen/qwen3.8-27b"
+    # Groq's answer to Ollama's `think: false`. Empty string omits the
+    # parameter entirely, for models that reject it.
+    groq_reasoning_format: str = "hidden"
+    groq_timeout_s: float = 120.0
+    # The free tier is 30 requests/minute. Both the eval harness and a demo
+    # where someone clicks twice will cross it, and an unretried 429 reaches the
+    # clinician as a 500. Retried with exponential backoff, or with whatever
+    # `Retry-After` says when Groq sends one.
+    groq_max_retries: int = 3
+    groq_retry_base_delay_s: float = 1.0
+
     # --- orchestration ------------------------------------------------------
     # Ollama serves this many requests concurrently; fan-out wider than this
     # queues rather than parallelises.
