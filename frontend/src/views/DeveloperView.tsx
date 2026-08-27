@@ -283,9 +283,9 @@ function SpanDetail({ span }: { span: Span }) {
 }
 
 const ACTION_LABEL: Record<GuardrailNote["action"], string> = {
-  blocked: "blocked — never reached a data plane",
-  flagged: "reported — nothing was blocked",
-  applied: "applied — runs on every request",
+  blocked: "blocked before any data plane",
+  flagged: "reported, nothing blocked",
+  applied: "applied to every request",
 };
 
 /**
@@ -311,7 +311,7 @@ function GuardrailExplainer({ note }: { note: GuardrailNote }) {
       <dl className="guard-body">
         <dt>The rule</dt>
         <dd>{inlineCode(note.rule)}</dd>
-        <dt>Why it fired here</dt>
+        <dt>Why it fired</dt>
         <dd>{inlineCode(note.why)}</dd>
         <dt>What happened</dt>
         <dd>{inlineCode(note.effect)}</dd>

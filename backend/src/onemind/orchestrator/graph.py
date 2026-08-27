@@ -46,7 +46,7 @@ from __future__ import annotations
 
 import asyncio
 import operator
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Annotated, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -54,6 +54,7 @@ from langgraph.types import Send
 
 from ..agents.base import BaseSpecialist, SpecialistResult
 from ..config import settings
+from ..guardrails.identity import check_subject, confirmation_statement
 from ..guardrails.phi import PHIRedactor, PHISession
 from ..llm.base import LLMProvider
 from ..observability.trace import SpanKind, Trace
@@ -98,6 +99,7 @@ def build_graph(
     history: str = "",
     turn: int = 1,
     retained: list[SpecialistResult] | None = None,
+    resolve_name: Callable[[str], list[str]] | None = None,
 ) -> Any:
     """Compile the graph.
 
@@ -113,6 +115,11 @@ def build_graph(
     semaphore = asyncio.Semaphore(settings.max_parallel_agents)
     board = facts if facts is not None else Facts()
     carried = retained or []
+    # A confirmed name/identifier pair, held from the identity check until
+    # `reconcile_node` can put it with the other computed findings. One value
+    # per request, written before any specialist runs and read after they all
+    # have, so there is nothing to race.
+    confirmed_subject: list[Finding] = []
 
     async def redact_node(state: OrchestratorState) -> dict[str, Any]:
         span = trace.start(SpanKind.GUARDRAIL, "PHI redaction (inbound)")
@@ -125,6 +132,10 @@ def build_graph(
         return {"redacted": redacted}
 
     async def route_node(state: OrchestratorState) -> dict[str, Any]:
+        conflict = _check_identity(state)
+        if conflict is not None:
+            return {"decision": conflict}
+
         span = trace.start(SpanKind.ROUTE, "Router", has_history=bool(history.strip()))
         decision = await router.route(state["redacted"], history)
         trace.end(
@@ -135,6 +146,61 @@ def build_graph(
             clarifying_question=decision.clarifying_question,
         )
         return {"decision": decision}
+
+    def _check_identity(state: OrchestratorState) -> RoutingDecision | None:
+        """Does the request agree with itself about whose records to read?
+
+        Runs before routing rather than after retrieval, because a request that
+        names two patients has already read the wrong one's records by the time
+        there is evidence to compare. See `guardrails/identity.py`.
+
+        Returns a decision only to stop the request. A confirmed pair is kept
+        as a finding and the router proceeds normally.
+        """
+        if resolve_name is None:
+            return None
+
+        span = trace.start(SpanKind.GUARDRAIL, "Subject identity")
+        try:
+            check = check_subject(session, resolve_name, state.get("redacted", ""))
+        except Exception as exc:  # noqa: BLE001 - a failed check must not sink the request
+            trace.fail(span, exc)
+            return None
+
+        trace.end(
+            span,
+            verdict=check.verdict,
+            # Placeholders, never the identifiers themselves: the trace is read
+            # by people, and `access-control-and-audit.md` keeps PHI out of it.
+            name=check.name_token,
+            supplied=check.patient_token,
+            candidate_count=len(check.candidates),
+        )
+
+        if check.verdict == "confirmed":
+            confirmed_subject.append(
+                Finding(
+                    check="named_patient_matches_supplied_id",
+                    verdict="match",
+                    statement=confirmation_statement(check),
+                    provenance="request name vs request patient_id, against the patient index",
+                )
+            )
+            return None
+
+        if check.verdict != "conflict":
+            return None
+
+        return RoutingDecision(
+            is_actionable=False,
+            clarifying_question=check.question,
+            agents=[],
+            rationale=(
+                "The request names a patient and supplies an identifier that "
+                "belongs to a different patient. Answering either one would be "
+                "a confident answer about the wrong person."
+            ),
+        )
 
     def fan_out(state: OrchestratorState) -> list[Send] | str:
         decision = state["decision"]
@@ -206,10 +272,12 @@ def build_graph(
         # comparison within one patient.
         span = trace.start(SpanKind.RECONCILE, "Reconciliation", wave=wave, carried=len(carried))
         try:
-            findings = reconcile(list(carried) + results, state.get("redacted", ""))
+            findings = confirmed_subject + reconcile(
+                list(carried) + results, state.get("redacted", "")
+            )
         except Exception as exc:  # noqa: BLE001 - a bad check is not a failed request
             trace.fail(span, exc)
-            return {"findings": [], "wave": wave, "established": established}
+            return {"findings": list(confirmed_subject), "wave": wave, "established": established}
 
         trace.end(
             span,
@@ -336,11 +404,17 @@ class Orchestrator:
         specialists: dict[str, BaseSpecialist],
         redactor: PHIRedactor,
         roster: SpecialistRegistry | None = None,
+        resolve_name: Callable[[str], list[str]] | None = None,
     ) -> None:
         self.provider = provider
         self.specialists = specialists
         self.redactor = redactor
         self.registry = roster or default_registry
+        # Maps a patient name to the identifiers it matches, for the identity
+        # check in `guardrails/identity.py`. Injected, like the redactor's
+        # roster of names, so nothing in the orchestrator reaches a store.
+        # Absent, the check abstains and behaviour is exactly as before.
+        self.resolve_name = resolve_name
         self.router = Router(provider, self.registry)
         self.synthesizer = Synthesizer(provider)
 
@@ -434,6 +508,7 @@ class Orchestrator:
             history,
             turn,
             retained=list(conversation.evidence) if conversation else None,
+            resolve_name=self.resolve_name,
         )
 
         # Forward span events while the graph runs. Deliberately not

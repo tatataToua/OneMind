@@ -19,6 +19,7 @@ import pytest
 from pydantic import BaseModel
 
 from onemind.agents import build_specialists
+from onemind.bootstrap import resolve_patient_name
 from onemind.guardrails.phi import PHIRedactor, load_known_names
 from onemind.llm.base import Message
 from onemind.orchestrator.graph import Orchestrator
@@ -121,6 +122,7 @@ def make_orchestrator(redactor: PHIRedactor):
             specialists=build_specialists(provider),
             redactor=redactor,
             roster=registry,
+            resolve_name=resolve_patient_name,
         )
 
     return _make

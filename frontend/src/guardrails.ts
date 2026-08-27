@@ -84,16 +84,15 @@ function ungroundedWhy(tool: string, args: string[]): string {
   const call = tool ? `\`${tool}\`` : "a tool";
 
   const harm = coded
-    ? "A code the request never mentioned does not fail - it resolves, and the answer reports a " +
-      "finding about the wrong procedure in the canonical form that makes it look checked."
-    : "An identifier the request never mentioned does not fail - it resolves, and the specialist " +
-      "answers confidently with a real person's record in reply to a question that never named them.";
+    ? "A made-up code still resolves. The answer then reports on the wrong procedure, in the " +
+      "same clean format as every checked one."
+    : "A made-up id still resolves. The specialist then answers about a real person the " +
+      "question never named.";
 
   return (
-    `The planner called ${call} with ${named}, whose value was neither a placeholder this ` +
-    `session issued nor anything the request contains. The usual origin is the example value in ` +
-    `the tool's own parameter description, which is the nearest identifier-shaped string the ` +
-    `model can see. ${harm}`
+    `The planner called ${call} with ${named}. That value came from neither place. It usually ` +
+    `comes from the example in the tool's own parameter description, the closest thing to an ` +
+    `identifier the model can see. ${harm}`
   );
 }
 
@@ -101,10 +100,9 @@ function unscopedWhy(tool: string, args: string[]): string {
   const named = args.length > 0 ? prose(args.map((a) => `\`${a}\``)) : "its scoping argument";
   const call = tool ? `\`${tool}\`` : "a tool";
   return (
-    `The request is plainly about one person, but ${call} was planned with no value for ${named}, ` +
-    `nothing else on the call scoped it, and no sibling specialist had established one. Running it ` +
-    `anyway would not error - it would read every record in the store and then report "no data" ` +
-    `perfectly confidently.`
+    `The request is about one person. ${call} was planned with no value for ${named}, nothing ` +
+    `else on the call narrowed it, and no other specialist had found one. Running it would read ` +
+    `every record in the store and then report "no data".`
   );
 }
 
@@ -112,10 +110,9 @@ function unverifiedWhy(values: string[], count: number): string {
   const n = count || values.length;
   const shown = values.length > 0 ? ` ${prose(values.map((v) => `\`${v}\``))}.` : ".";
   return (
-    `${n} ${plural(n, "value", "values")} in the written answer ${plural(n, "appears", "appear")} ` +
-    `in neither the tool results nor the question:${shown} This is the independent failure - the ` +
-    `lookup was correctly scoped and returned the right record, and the model then asserted ` +
-    `something that record does not say.`
+    `${n} ${plural(n, "value", "values")} in the answer ${plural(n, "appears", "appear")} in ` +
+    `neither the tool results nor the question:${shown} The lookup was scoped correctly and ` +
+    `returned the right record. The model then asserted something that record does not say.`
   );
 }
 
@@ -123,9 +120,8 @@ function injectionWhy(fragments: string[], count: number): string {
   const n = count || fragments.length;
   return (
     `${n} instruction-shaped ${plural(n, "fragment", "fragments")} arrived inside a retrieved ` +
-    `record. It came from a record system, not from the user, which means nobody read it before ` +
-    `the model did - the same way a hostile string reaches a database concatenated into something ` +
-    `parsed as a mix of instruction and data.`
+    `record. ${plural(n, "It", "They")} came out of a record system, so nobody saw ` +
+    `${plural(n, "it", "them")} before the model did.`
   );
 }
 
@@ -148,15 +144,15 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "Argument grounding",
         source: "agents/base.py · _is_grounded",
         rule:
-          "An argument that selects whose record is returned, or which code is looked up, must " +
-          "trace back to the request: either a redaction placeholder this session issued, or a " +
-          "literal the request contains verbatim. There is no third legitimate origin.",
+          "An argument that picks whose record comes back, or which code gets looked up, has to " +
+          "come from the request. Two forms count: a placeholder this session issued, or text " +
+          "the request contains word for word.",
         why: ungroundedWhy(tool, args),
         effect:
-          "The whole call was dropped, not just the offending argument - a lookup stripped of " +
-          "what scopes it either fails on a missing argument or widens into an unscoped query. " +
-          "The rejected value is deliberately not recorded here: it is unverified, and may be a " +
-          "real identifier the model guessed correctly.",
+          "The whole call was dropped. Removing the one argument would leave a lookup that " +
+          "either errors on what is missing or widens to the entire store. The rejected value " +
+          "is not shown here. It is unverified, and it might be a real identifier the model " +
+          "happened to guess.",
         action: "blocked",
       };
 
@@ -165,13 +161,12 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "Scope check",
         source: "agents/base.py · under_scoped",
         rule:
-          "When the request names a particular person, a lookup must carry an identifier. A " +
-          "missing scoping argument is not the harmless case it looks like: the tool does not " +
-          "reject it, it returns everything.",
+          "When the request names a person, the lookup has to carry an identifier. Leave it out " +
+          "and the tool returns every record rather than an error.",
         why: unscopedWhy(tool, args),
         effect:
-          "The call was declined rather than widened, and this specialist was marked for a " +
-          "second wave - if another specialist resolves the identifier, it runs again with it.",
+          "The call was declined and this specialist was marked for a second wave. If another " +
+          "specialist finds the identifier, it runs again with it.",
         action: "blocked",
       };
 
@@ -180,16 +175,15 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "Answer grounding",
         source: "guardrails/grounding.py · ungrounded_values",
         rule:
-          "Every code, identifier and date the answer asserts must appear in the evidence or in " +
-          "the question. Bare numbers are exempt by design - rounding 318.38 to “about $318” " +
-          "is what a language model is for, and checking it would refuse correct answers far more " +
-          "often than it would catch a wrong one.",
+          "Every code, identifier and date in the answer has to appear in the evidence or the " +
+          "question. Plain numbers are exempt. Rounding 318.38 to “about $318” is the job, and " +
+          "checking it would reject far more right answers than wrong ones.",
         why: unverifiedWhy(list(span.detail.values), num(span.detail.count)),
         effect:
-          "Nothing was blocked. The answer ships with these values marked, because a system that " +
-          "says which of its claims it cannot vouch for is more useful than one that silently " +
-          "drops them. The values pass through redaction on the way into this trace: “absent " +
-          "from the evidence” is precisely what PHI the inbound patterns missed looks like.",
+          "Nothing was blocked. The answer ships with these values marked, so you can see which " +
+          "claims it cannot vouch for. They pass through redaction on the way into this trace, " +
+          "because PHI the inbound patterns missed looks exactly like a value absent from the " +
+          "evidence.",
         action: "flagged",
       };
 
@@ -198,15 +192,15 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "Prompt-injection detector",
         source: "guardrails/injection.py · suspicious_spans",
         rule:
-          "Retrieved records are data and never instructions. Each pattern requires an override " +
-          "verb bound to an object meaning these instructions, which is what keeps clinical prose " +
-          "– “follow the instructions on the label” – from firing it.",
+          "Retrieved records are data, never instructions. Each pattern needs an override verb " +
+          "attached to an object meaning these instructions. That is what keeps clinical prose " +
+          "like “follow the instructions on the label” from setting it off.",
         why: injectionWhy(list(span.detail.fragments), num(span.detail.count)),
         effect:
-          "Nothing was blocked, by design. The fence around the evidence is the defence and runs " +
-          "unconditionally; this is the audit signal. A model can be talked into things by text " +
-          "no pattern here matches, so treating detection as the barrier would mean trusting the " +
-          "weaker of the two mechanisms.",
+          "Nothing was blocked. The fence around the evidence is the defence, and it runs on " +
+          "every request. This detector is the audit signal. Text no pattern here matches can " +
+          "still talk a model round, so leaning on detection would rest the system on the " +
+          "weaker of the two.",
         action: "flagged",
       };
 
@@ -218,22 +212,22 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "PHI boundary, inbound",
         source: "guardrails/phi.py · PHISession.redact",
         rule:
-          "The model is untrusted; the data plane is not. Every identifier the patterns recognise " +
-          "becomes a stable placeholder before the model sees anything, and the placeholder means " +
-          "the same person for the whole conversation.",
+          "The model is untrusted. The data plane is not. Every identifier the patterns " +
+          "recognise becomes a placeholder before the model sees anything, and that placeholder " +
+          "means the same person for the whole conversation.",
         why: enabled
           ? n > 0
             ? `${n} ${plural(n, "identifier", "identifiers")} in this request ${plural(n, "was", "were")} ` +
-              `replaced with a placeholder${kinds.length ? ` (${prose(kinds)})` : ""}. Everything ` +
-              `downstream – the router, the specialists, this trace – sees only tokens.`
+              `replaced with a placeholder${kinds.length ? ` (${prose(kinds)})` : ""}. The router, ` +
+              `the specialists and this trace see only tokens.`
             : "No identifier in this request matched a redaction pattern, so nothing was tokenised."
-          : "Redaction is switched off for this run, so the request reached the model as typed. " +
-            "The grounding checks lose their signal with it: with no tokens, an argument can only " +
-            "be grounded by appearing verbatim in the request.",
+          : "Redaction is off for this run, so the request reached the model as typed. The " +
+            "grounding checks lose their signal too. With no tokens, an argument counts as " +
+            "grounded only when it appears word for word in the request.",
         effect:
-          "Identifiers cross back only at the tool boundary, where they are rehydrated into real " +
-          "lookup keys - the tools are the system of record, and hiding an id from the store it " +
-          "came from protects nothing.",
+          "Identifiers cross back at the tool boundary, where they become real lookup keys " +
+          "again. The tools are the system of record, and hiding an id from the store it came " +
+          "from protects nobody.",
         action: "applied",
       };
     }
@@ -244,18 +238,18 @@ export function explainGuardrail(span: Span): GuardrailNote | null {
         guard: "PHI boundary, outbound",
         source: "guardrails/phi.py · PHISession.rehydrate",
         rule:
-          "The answer is written entirely over placeholders and restored last, so the trace and " +
-          "the logs keep the redacted form while the reader gets real names.",
+          "The model writes the answer over placeholders, and they are restored last. The trace " +
+          "and the logs keep the redacted form. You get real names.",
         why:
           n > 0
-            ? `${n} ${plural(n, "token was", "tokens were")} in scope for this request. Matching is ` +
-              `done on a separator-stripped form, because models reformat tokens - \`PHI_MRN_1\` ` +
-              `came back as \`PHI_MR_N_1\` in testing, and an unresolved placeholder in a clinical ` +
-              `answer is worse than no answer.`
+            ? `${n} ${plural(n, "token was", "tokens were")} in scope for this request. Matching ` +
+              `strips separators first, because models reformat tokens: \`PHI_MRN_1\` came back ` +
+              `as \`PHI_MR_N_1\` in testing. A placeholder left unresolved in a clinical answer ` +
+              `is worse than no answer.`
             : "No tokens were minted for this request, so re-hydration had nothing to restore.",
         effect:
-          "Only the user-facing answer and the findings are restored. Every span above this one " +
-          "keeps its placeholders, which is what makes the trace safe to retain.",
+          "Only the answer and the findings are restored. Every span above this one keeps its " +
+          "placeholders, which is what makes the trace safe to keep.",
         action: "applied",
       };
     }

@@ -39,6 +39,18 @@ def build_redactor() -> PHIRedactor:
     return PHIRedactor(known_names=load_known_names(store.patients()))
 
 
+def resolve_patient_name(name: str) -> list[str]:
+    """Identifiers a patient name matches, for the subject identity check.
+
+    Lives here rather than in `guardrails/identity.py` for the same reason
+    `build_redactor` loads the name roster here: the composition root is what
+    knows about stores. A list, because names are not unique - two patients
+    genuinely share one in this corpus, and the check treats membership rather
+    than equality as agreement.
+    """
+    return [patient["patient_id"] for patient in store.find_patients(name)]
+
+
 def build_orchestrator(provider: LLMProvider | None = None) -> Orchestrator:
     provider = provider or build_provider()
     return Orchestrator(
@@ -46,6 +58,7 @@ def build_orchestrator(provider: LLMProvider | None = None) -> Orchestrator:
         specialists=build_specialists(provider),
         redactor=build_redactor(),
         roster=registry,
+        resolve_name=resolve_patient_name,
     )
 
 
