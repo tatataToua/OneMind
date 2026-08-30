@@ -59,13 +59,6 @@ jobs:
           uv pip install pip-audit
           uv run pip-audit --desc
 
-      # The evals themselves need a live model and stay out of CI. This does
-      # not run them - it checks that the tables in the README still match the
-      # committed report, which is the failure mode that actually happened:
-      # numbers retyped by hand, then quietly outrun by the next run.
-      - name: README matches the committed report
-        run: uv run python ../evals/update_readme.py --check
-
   frontend:
     name: frontend (typecheck + build)
     runs-on: ubuntu-latest

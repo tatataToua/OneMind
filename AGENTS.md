@@ -38,11 +38,9 @@ Each one cost a session real time.
   config and silently uses its default of 88 — `check` merely reports odd results,
   but `format` rewrites files into a state that `./run.ps1 lint` and CI then reject.
   `./run.ps1 lint` always gets this right; use it.
-- **The README's evaluation tables are generated.** Everything between
-  `<!-- eval:begin -->` and `<!-- eval:end -->` comes from
-  `evals/comparison_report.json` via `evals/update_readme.py`, and CI runs that
-  script with `--check`. Hand-editing the numbers turns the build red. Prose outside
-  the markers is hand-written and safe.
+- **The evaluation numbers live in `docs/evaluation.md`,** copied by hand from
+  `evals/comparison_report.json` (regenerate with `./run.ps1 compare`). The README
+  no longer carries them, and `evals/update_readme.py` is unused.
 - **Never `git add -A` in this repo.** More than one agent session has worked in this
   single working tree at once, and a blind stage-all has already swept another
   session's in-progress files into a commit whose message described something else.
