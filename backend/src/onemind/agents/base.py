@@ -77,11 +77,6 @@ TOOL RESULTS
 """
 
 
-class ToolCall(BaseModel):
-    tool: str
-    arguments: dict[str, str] = Field(default_factory=dict)
-
-
 class SpecialistResult(BaseModel):
     agent: str
     display_name: str

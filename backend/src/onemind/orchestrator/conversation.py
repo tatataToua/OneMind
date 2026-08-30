@@ -203,9 +203,6 @@ class ConversationStore:
         self._enforce_cap()
         return conversation
 
-    def drop(self, session_id: str) -> None:
-        self._live.pop(session_id, None)
-
     def _evict(self) -> None:
         """Drop conversations idle past the TTL.
 

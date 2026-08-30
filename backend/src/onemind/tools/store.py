@@ -199,34 +199,3 @@ def match_patients(
         if narrowed:
             return narrowed
     return matches
-
-
-def resolve_patients(key: str, birth_date: str = "") -> list[dict[str, Any]]:
-    """Legacy single-key resolution, kept for callers that still pass one string.
-
-    Prefer `match_patients`, which knows which kind of thing it was handed.
-    """
-    matches = find_patients(key)
-    if len(matches) > 1 and birth_date.strip():
-        wanted = birth_date.strip()
-        narrowed = [p for p in matches if p["birth_date"] == wanted]
-        if narrowed:
-            return narrowed
-    return matches
-
-
-def find_patient(key: str) -> dict[str, Any] | None:
-    """The one patient matching `key`, or None if the match is not unique.
-
-    Ambiguity is deliberately indistinguishable from absence here: both mean
-    "you may not proceed". Returning the first of several matches would hand
-    back the wrong person's chart, which is the worst thing this system could
-    do quietly.
-    """
-    matches = find_patients(key)
-    return matches[0] if len(matches) == 1 else None
-
-
-def reset_cache() -> None:
-    for fn in (patients, claims, devices, telemetry, codesets, policies):
-        fn.cache_clear()
