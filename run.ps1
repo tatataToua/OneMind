@@ -21,13 +21,19 @@
   ./run.ps1 conv       # multi-turn eval: memory + two-wave dispatch
   ./run.ps1 compare    # router vs monolith baseline (needs Ollama)
   ./run.ps1 check      # pre-demo readiness check
+  ./run.ps1 ollama status   # is the local Ollama server up? (also: start, stop)
   ./run.ps1 deploy     # build and ship to Cloud Run (needs gcloud)
   ./run.ps1 tunnel     # point the hosted app at this machine's Ollama
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check', 'deploy', 'tunnel')]
-    [string]$Task = 'check'
+    [ValidateSet('setup', 'api', 'ui', 'demo', 'test', 'eval', 'conv', 'compare', 'fixtures', 'lint', 'check', 'deploy', 'tunnel', 'ollama')]
+    [string]$Task = 'check',
+
+    # Only read by the 'ollama' task; ignored by the rest.
+    [Parameter(Position = 1)]
+    [ValidateSet('start', 'stop', 'status')]
+    [string]$Action = 'status'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +41,8 @@ $Root = $PSScriptRoot
 $Backend = Join-Path $Root 'backend'
 $Frontend = Join-Path $Root 'frontend'
 $Model = 'qwen3.5:4b'
+# Secret Manager names, shared by `deploy` and `tunnel`.
+$KeySecret = 'onemind-groq-key'
 $VenvPy = Join-Path $Backend '.venv\Scripts\python.exe'
 
 # --- interpreter discovery -------------------------------------------------
@@ -149,6 +157,25 @@ function Deploy-Service {
     } finally { Pop-Location }
 }
 
+function Get-GroqKey {
+    <#  The Groq API key, from the environment or from backend/.env.
+
+        Both tasks need it now: `deploy` runs on it, and `tunnel` wires it in
+        behind Ollama as the fallback. It goes to Secret Manager rather than
+        into --set-env-vars, so it stays out of the service's revision history
+        and out of shell history. #>
+    param([Parameter(Mandatory)][string]$Backend)
+
+    if ($env:ONEMIND_GROQ_API_KEY) { return $env:ONEMIND_GROQ_API_KEY }
+
+    $envFile = Join-Path $Backend '.env'
+    if (Test-Path $envFile) {
+        $line = Select-String -Path $envFile -Pattern '^ONEMIND_GROQ_API_KEY=(.+)$'
+        if ($line) { return $line.Matches[0].Groups[1].Value.Trim() }
+    }
+    return ''
+}
+
 function Get-RuntimeServiceAccount {
     <#  Cloud Run runs as the project's default compute service account. Both
         the deploy and the tunnel have to name it to grant it a secret. #>
@@ -173,8 +200,17 @@ function Publish-Secret {
     $exists = (& gcloud secrets describe $Name --project $Project 2>$null)
     if (-not $exists) {
         Write-Host "==> creating secret $Name" -ForegroundColor Cyan
-        & gcloud secrets create $Name --replication-policy=automatic --project $Project | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "creating $Name failed" }
+        & gcloud secrets create $Name --replication-policy=automatic --project $Project 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            # A non-zero exit is not proof the secret is missing. gcloud retries
+            # internally, so a create whose first attempt lands slowly gets
+            # ALREADY_EXISTS on its own retry and reports the failure it just
+            # caused. Ask what is true rather than trusting the exit code - the
+            # state this wants is "the secret exists", and it does either way.
+            if (-not (& gcloud secrets describe $Name --project $Project 2>$null)) {
+                throw "creating $Name failed"
+            }
+        }
     }
 
     Write-Host "==> storing a version of $Name" -ForegroundColor Cyan
@@ -309,7 +345,6 @@ switch ($Task) {
         # us-central1 is not arbitrary: Cloud Run's always-free allowance only
         # applies in a handful of US regions, and this is one of them.
         $Region = if ($env:ONEMIND_GCP_REGION) { $env:ONEMIND_GCP_REGION } else { 'us-central1' }
-        $SecretName = 'onemind-groq-key'
 
         # `--verbosity=error` silences the configuration banner; without it the
         # banner lands in $project and every later --project flag is malformed.
@@ -320,24 +355,20 @@ switch ($Task) {
         $project = $project.ToString().Trim()
         Write-Host "==> project $project / region $Region" -ForegroundColor Cyan
 
-        # The key lives in Secret Manager rather than in --set-env-vars, so it
-        # is not recorded in the service's revision history or in shell history.
-        $key = $env:ONEMIND_GROQ_API_KEY
-        if (-not $key) {
-            $envFile = Join-Path $Backend '.env'
-            if (Test-Path $envFile) {
-                $line = Select-String -Path $envFile -Pattern '^ONEMIND_GROQ_API_KEY=(.+)$'
-                if ($line) { $key = $line.Matches[0].Groups[1].Value.Trim() }
-            }
-        }
+        # Ollama first here too, with nothing for it to find: inside the
+        # container `ollama_host` is loopback, so the connection is refused at
+        # once and Groq answers. That keeps one wiring for both tasks - the only
+        # difference between a hosted demo and a borrowed-GPU one is whether
+        # `ONEMIND_OLLAMA_HOST` points anywhere.
+        $key = Get-GroqKey -Backend $Backend
         if (-not $key) { throw "No Groq key. Set ONEMIND_GROQ_API_KEY or put it in backend/.env" }
 
         $sa = Get-RuntimeServiceAccount -Project $project
-        Publish-Secret -Name $SecretName -Value $key -Project $project -ServiceAccount $sa
+        Publish-Secret -Name $KeySecret -Value $key -Project $project -ServiceAccount $sa
 
         Deploy-Service -Service $Service -Project $project -Region $Region -ServiceAccount $sa `
-            -EnvVars 'ONEMIND_LLM_PROVIDER=groq' `
-            -Secrets "ONEMIND_GROQ_API_KEY=${SecretName}:latest" -Root $Root
+            -EnvVars 'ONEMIND_LLM_PROVIDER=ollama,ONEMIND_LLM_FALLBACK=groq' `
+            -Secrets "ONEMIND_GROQ_API_KEY=${KeySecret}:latest" -Root $Root
 
         $url = (& gcloud run services describe $Service --region $Region --project $project --format='value(status.url)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
         Write-Host ''
@@ -378,7 +409,7 @@ switch ($Task) {
         try {
             $null = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/version' -TimeoutSec 4
         } catch {
-            throw 'Ollama is not answering on :11434. Start it, then run this again.'
+            throw 'Ollama is not answering on :11434. Run: ./run.ps1 ollama start'
         }
 
         $tags = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 6
@@ -502,13 +533,22 @@ switch ($Task) {
         # provider learned to send a bearer token gets a 401 from its own
         # gateway - which is what happened the first time this ran.
         #
-        # --set-secrets, not --update-secrets: this drops the Groq key binding,
-        # so the hosted build has no hosted provider wired up at all while it is
-        # pointed here. `./run.ps1 deploy` puts it back.
-        Deploy-Service -Service $Service -Project $project -Region $Region -ServiceAccount $sa `
-            -EnvVars "ONEMIND_LLM_PROVIDER=ollama,ONEMIND_OLLAMA_HOST=$public" `
-            -Secrets "ONEMIND_OLLAMA_AUTH_TOKEN=${TokenSecret}:latest" -Root $Root
+        # The Groq key rides along rather than being dropped. It is the fallback
+        # now (decision 27), so a tunnel that dies mid-demo degrades to the
+        # hosted model instead of to an error. Published here as well as in
+        # `deploy`, because `tunnel` may be the first thing anyone runs.
+        $secrets = "ONEMIND_OLLAMA_AUTH_TOKEN=${TokenSecret}:latest"
+        $key = Get-GroqKey -Backend $Backend
+        if ($key) {
+            Publish-Secret -Name $KeySecret -Value $key -Project $project -ServiceAccount $sa
+            $secrets = "$secrets,ONEMIND_GROQ_API_KEY=${KeySecret}:latest"
+        } else {
+            Write-Warning 'no Groq key found - deploying with no fallback, so a dead tunnel is a dead demo'
+        }
 
+        Deploy-Service -Service $Service -Project $project -Region $Region -ServiceAccount $sa `
+            -EnvVars "ONEMIND_LLM_PROVIDER=ollama,ONEMIND_LLM_FALLBACK=groq,ONEMIND_OLLAMA_HOST=$public" `
+            -Secrets $secrets -Root $Root
         $url = (& gcloud run services describe $Service --region $Region --project $project --format='value(status.url)' --verbosity=error | Select-Object -Last 1).ToString().Trim()
 
         # One real turn, hosted service to this machine and back. /api/health
@@ -527,6 +567,17 @@ switch ($Task) {
         }
         Write-Host '    a full turn completed through the tunnel' -ForegroundColor Green
 
+        # A completed turn is no longer proof on its own. With Groq wired in
+        # behind Ollama (decision 27), a dead tunnel produces a perfectly good
+        # answer from the wrong machine - which is the failure this whole task
+        # exists to make impossible. Health reports the provider that actually
+        # answered, so it is the assertion that matters.
+        $live = (Invoke-RestMethod "$url/api/health" -TimeoutSec 120).provider
+        if ($live -ne 'ollama') {
+            throw "the turn completed, but on '$live' - the fallback answered, so the tunnel is not carrying the demo"
+        }
+        Write-Host '    and ollama answered it, not the fallback' -ForegroundColor Green
+
         Write-Host ''
         Write-Host "  hosted:  $url" -ForegroundColor Green
         Write-Host "  health:  $url/api/health   (expect provider=ollama)" -ForegroundColor Green
@@ -538,6 +589,81 @@ switch ($Task) {
         Write-Host '  OLLAMA_NUM_PARALLEL=4; otherwise four specialists queue.' -ForegroundColor Yellow
         Write-Host '  Put Groq back with: ./run.ps1 deploy' -ForegroundColor Yellow
         Write-Host ''
+    }
+
+    # Start, stop, or check the local Ollama server - the thing that has to be
+    # listening on :11434 before `demo`, `eval`, `compare`, or `tunnel` will
+    # work. On Windows the server is owned by a tray app ("ollama app.exe"),
+    # not by the CLI: `ollama pull` and `ollama run` talk to the server but do
+    # not reliably start it, which is the "timed out waiting for server to
+    # start" you hit when nothing is serving :11434 yet.
+    'ollama' {
+        $OllamaBase = 'http://127.0.0.1:11434'
+
+        function Test-OllamaUp {
+            try { return Invoke-RestMethod -Uri "$OllamaBase/api/version" -TimeoutSec 3 }
+            catch { return $null }
+        }
+
+        switch ($Action) {
+
+            'status' {
+                $v = Test-OllamaUp
+                if (-not $v) {
+                    Write-Host 'ollama: not running' -ForegroundColor Yellow
+                    Write-Host '  start it with: ./run.ps1 ollama start'
+                    break
+                }
+                $pulled = try { (Invoke-RestMethod "$OllamaBase/api/tags" -TimeoutSec 5).models } catch { @() }
+                $loaded = try { (Invoke-RestMethod "$OllamaBase/api/ps" -TimeoutSec 5).models } catch { @() }
+                Write-Host "ollama: running (v$($v.version))" -ForegroundColor Green
+                Write-Host "  models pulled:  $($pulled.Count)   ($Model $(if ($pulled.name -contains $Model) { 'present' } else { 'MISSING - run ollama pull ' + $Model }))"
+                if ($loaded) {
+                    Write-Host "  loaded in VRAM: $($loaded.name -join ', ')  - warm, no cold start" -ForegroundColor Green
+                } else {
+                    Write-Host '  loaded in VRAM: none - the first request pays a cold load'
+                }
+            }
+
+            'start' {
+                $up = Test-OllamaUp
+                if ($up) {
+                    Write-Host "ollama: already running (v$($up.version))" -ForegroundColor Green
+                    break
+                }
+
+                # Launch the same tray app the Start menu does - it starts the
+                # server as a child and keeps it alive. Its path sits next to
+                # the CLI, so derive it rather than hard-coding an install dir.
+                $cli = (Get-Command ollama -ErrorAction Stop).Source
+                $app = Join-Path (Split-Path $cli) 'ollama app.exe'
+                if (-not (Test-Path $app)) { throw "cannot find 'ollama app.exe' next to $cli" }
+
+                Write-Host "==> launching $app" -ForegroundColor Cyan
+                Start-Process -FilePath $app
+
+                foreach ($attempt in 1..30) {
+                    Start-Sleep -Milliseconds 500
+                    $up = Test-OllamaUp
+                    if ($up) { break }
+                }
+                if (-not $up) { throw 'ollama was launched but did not answer on :11434 within 15s' }
+                Write-Host "ollama: running (v$($up.version))" -ForegroundColor Green
+                Write-Host "  warm the model with: ollama run $Model ok"
+            }
+
+            'stop' {
+                # The tray app owns the serving process, so stopping it stops
+                # both; a bare `ollama serve` (the debug way) is caught too.
+                $procs = Get-Process -Name 'ollama app', 'ollama' -ErrorAction SilentlyContinue
+                if (-not $procs) {
+                    Write-Host 'ollama: not running' -ForegroundColor Green
+                    break
+                }
+                $procs | Stop-Process -Force
+                Write-Host "ollama: stopped ($($procs.Count) process$(if ($procs.Count -eq 1) { '' } else { 'es' }))" -ForegroundColor Green
+            }
+        }
     }
 
     'test' { Invoke-Py @('-m', 'pytest', '-q') }
@@ -587,7 +713,7 @@ switch ($Task) {
             $v = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/version' -TimeoutSec 4
             $ollamaUp = $true
             Report 'ollama' $true "v$($v.version)"
-        } catch { Report 'ollama' $false 'not reachable on :11434'; $ok = $false }
+        } catch { Report 'ollama' $false 'not on :11434 - run ./run.ps1 ollama start'; $ok = $false }
 
         # Model present
         if ($ollamaUp) {
