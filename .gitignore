@@ -19,6 +19,13 @@ backend/.env
 # quotes from and which `./run.ps1 compare` regenerates.
 evals/report.json
 
+# Agent tooling. Local machine setup, not project source: the BMAD module
+# install and the vendored Claude skill packages. Both are already excluded
+# from every deploy (.dockerignore, .gcloudignore); this keeps them out of the
+# repo a reviewer clones too.
+.claude/skills/
+_bmad/
+
 # OS
 .DS_Store
 Thumbs.db
