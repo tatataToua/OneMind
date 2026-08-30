@@ -41,8 +41,13 @@ RUN uv sync --frozen --no-dev
 
 COPY --from=frontend /build/dist ./static
 
+# Ollama first, Groq behind it. The image prefers the demo machine's GPU
+# whenever `ONEMIND_OLLAMA_HOST` points somewhere reachable, and answers from
+# the hosted model when it does not - which, with no host set, is an instantly
+# refused connection to loopback inside the container. See decision 27.
 ENV ONEMIND_STATIC_DIR=/app/static \
-    ONEMIND_LLM_PROVIDER=groq \
+    ONEMIND_LLM_PROVIDER=ollama \
+    ONEMIND_LLM_FALLBACK=groq \
     PORT=8080
 
 # `tools/store.py` locates fixtures relative to its own file, which resolves

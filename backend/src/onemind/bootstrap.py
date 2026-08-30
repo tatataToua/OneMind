@@ -6,6 +6,7 @@ harness, and the tests. Nothing below this module constructs its own provider.
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from .agents import build_specialists
@@ -17,10 +18,12 @@ from .orchestrator.graph import Orchestrator
 from .orchestrator.registry import registry
 from .tools import store
 
+log = logging.getLogger(__name__)
 
-def build_provider(name: str | None = None) -> LLMProvider:
-    """Select a provider by name. The only place provider choice is decided."""
-    choice = (name or settings.llm_provider).lower()
+
+def build_one_provider(name: str) -> LLMProvider:
+    """Construct a single named provider. Knows every backend; chooses none."""
+    choice = name.lower()
 
     if choice == "ollama":
         from .llm.ollama import OllamaProvider
@@ -38,6 +41,37 @@ def build_provider(name: str | None = None) -> LLMProvider:
         return BedrockProvider()
 
     raise ValueError(f"unknown provider {choice!r}; expected 'ollama', 'groq' or 'bedrock'")
+
+
+def build_provider(name: str | None = None, fallback: str | None = None) -> LLMProvider:
+    """Select a provider. The only place provider choice is decided.
+
+    With `llm_fallback` set the result is a `FallbackProvider` rather than one
+    backend, so the hosted build can prefer the demo laptop's GPU and still
+    answer when that laptop is closed. Nothing above `llm/base.py` can tell the
+    difference; both satisfy the same three-method protocol.
+    """
+    primary_name = (name or settings.llm_provider).lower()
+    primary = build_one_provider(primary_name)
+
+    secondary_name = (fallback if fallback is not None else settings.llm_fallback).lower()
+    if not secondary_name or secondary_name == primary_name:
+        return primary
+
+    try:
+        secondary = build_one_provider(secondary_name)
+    except Exception as exc:  # noqa: BLE001 - a missing key must not be fatal
+        # A fallback that cannot be constructed - usually `groq` with no key -
+        # is not an error. It means this deployment has one provider, which is
+        # the ordinary local case. Loud enough to find, quiet enough to run.
+        log.warning(
+            "no %r fallback available (%s); using %r alone", secondary_name, exc, primary_name
+        )
+        return primary
+
+    from .llm.fallback import FallbackProvider
+
+    return FallbackProvider(primary, secondary)
 
 
 def build_redactor() -> PHIRedactor:

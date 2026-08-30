@@ -114,9 +114,15 @@ OLLAMA_NUM_PARALLEL=4     # one slot per specialist, so fan-out is real
 
 ## Deploy it
 
-The local build needs a GPU on the same machine. The hosted build swaps the
-provider for [Groq](https://groq.com) — still an open-weight Qwen model, so the
-eval numbers stay comparable — and runs on Cloud Run's always-free tier.
+The local build needs a GPU on the same machine. The hosted build tries that
+machine first and falls back to [Groq](https://groq.com) — still an open-weight
+Qwen model, so the eval numbers stay comparable — whenever it cannot be reached,
+which with no tunnel running is always. It runs on Cloud Run's always-free tier.
+
+That choice is made per call rather than per deploy ([decision
+27](docs/decisions.md)), so the link works whether or not your laptop is on, and
+uses your GPU whenever it is. `/api/health` names the provider that actually
+answered, not the one that was configured.
 
 ```powershell
 # backend/.env  (gitignored)
@@ -167,16 +173,17 @@ winget install --id Cloudflare.cloudflared   # once
 It warms the model, starts the gateway, opens a Cloudflare quick tunnel, checks
 that the tunnel answers with the token and refuses a request without one, then
 builds and deploys from source pointed at that tunnel. It finishes by asking the
-hosted service a real question and failing if the turn does not complete, so a
-broken path surfaces here rather than in front of an audience. Budget a few
-minutes for the build.
+hosted service a real question — and then checking that `ollama` is what
+answered it, because with a fallback in place a completed turn no longer proves
+the tunnel works. Budget a few minutes for the build.
 
 It is a full deploy rather than a `gcloud run services update` on purpose: an
 update changes environment variables and leaves the image alone, and an image
 older than the token-aware provider gets a 401 from its own gateway.
 
-The deploy also drops the Groq key binding, so while the tunnel is up there is
-no hosted provider wired in at all. `./run.ps1 deploy` puts Groq back.
+The Groq key stays bound as the fallback, so a tunnel that dies mid-demo
+degrades to the hosted model rather than to an error. `./run.ps1 deploy` returns
+the service to the same pair with no tunnel host, which is the resting state.
 
 What the tunnel exposes is [`llm/gateway.py`](backend/src/onemind/llm/gateway.py),
 not Ollama: two routes behind a bearer token, with Ollama still bound to
@@ -492,7 +499,9 @@ All settings take an `ONEMIND_` prefix.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `ONEMIND_LLM_PROVIDER` | `ollama` | or `groq`, or `bedrock` |
+| `ONEMIND_LLM_PROVIDER` | `ollama` | or `groq`, or `bedrock`; tried first |
+| `ONEMIND_LLM_FALLBACK` | — | used only when the provider above is unreachable; the container sets `groq` |
+| `ONEMIND_LLM_FALLBACK_COOLDOWN_S` | `30` | how long an unreachable primary is left alone before being retried |
 | `ONEMIND_OLLAMA_MODEL` | `qwen3.5:4b` | raise on a larger GPU |
 | `ONEMIND_GROQ_API_KEY` | — | required when the provider is `groq`; fails at construction if unset |
 | `ONEMIND_GROQ_MODEL` | `qwen/qwen3.8-27b` | must offer strict-mode structured outputs, or routing loses its decode-time guarantee |

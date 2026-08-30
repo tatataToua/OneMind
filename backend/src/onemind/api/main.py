@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..bootstrap import default_conversations, default_orchestrator
 from ..config import settings
 from ..examples import EXAMPLES
+from ..llm.base import live_identity
 from ..observability.trace import Trace
 from ..orchestrator.registry import registry
 from . import limits
@@ -147,12 +148,47 @@ def resolve_active_model() -> str:
     }.get(settings.llm_provider.lower(), "unknown")
 
 
+def resolve_live_provider() -> tuple[str, str]:
+    """Provider and model as of the last call, not as of the configuration.
+
+    With a fallback configured (`llm/fallback.py`) the answer is not a setting.
+    It depends on whether the primary was reachable, which is the thing health
+    is being asked. So the running provider is asked directly - but only if one
+    has already been built. Health must never be what constructs the
+    orchestrator: it is the endpoint you reach for when something is wrong, and
+    it should answer then too. Before the first turn it reports the configured
+    primary, which is what the next call will try.
+    """
+    provider = _provider_already_built()
+    if provider is not None:
+        return live_identity(provider)
+    return settings.llm_provider, resolve_active_model()
+
+
+def _provider_already_built() -> object | None:
+    """The provider in use, or None if nothing has built one yet.
+
+    Deliberately never constructs. `default_orchestrator` is memoised, so its
+    cache size answers "has a turn happened" without causing one; tests replace
+    it with a plain stub, which has no cache and no provider, and falls through
+    to the configured answer.
+    """
+    cache_info = getattr(default_orchestrator, "cache_info", None)
+    if cache_info is not None and not cache_info().currsize:
+        return None
+    return getattr(default_orchestrator(), "provider", None)
+
+
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
+    provider, model = resolve_live_provider()
     return {
         "status": "ok",
-        "provider": settings.llm_provider,
-        "model": resolve_active_model(),
+        "provider": provider,
+        "model": model,
+        # Named so the answer to "why is this on Groq?" is visible rather than
+        # inferred. Null when this deployment has only one provider.
+        "fallback": settings.llm_fallback or None,
         "agents": registry.keys(),
         "phi_redaction": settings.phi_redaction_enabled,
     }

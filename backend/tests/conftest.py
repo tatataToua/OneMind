@@ -31,6 +31,7 @@ class StubProvider:
     """Deterministic stand-in for a language model."""
 
     name = "stub"
+    model = "stub-model"
 
     def __init__(
         self,

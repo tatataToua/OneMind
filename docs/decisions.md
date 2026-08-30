@@ -858,3 +858,67 @@ queue behind one slot and the concurrency the graph exists to exploit is
 invisible in the trace. Latency gains a round trip to Cloudflare and back to a
 home connection - tolerable for the 4B, and the reason the task warms the model
 with `keep_alive: -1` before it publishes anything.
+
+---
+
+## 27. The hosted build prefers the laptop's GPU and keeps Groq behind it
+
+**Decision.** The deployed service no longer picks a provider at deploy time.
+It runs `llm_provider=ollama` with `llm_fallback=groq`: every call tries the
+demo machine first and uses Groq only when the machine cannot be reached.
+`llm/fallback.py` holds both behind the same three-method protocol, so nothing
+above `llm/base.py` learns that there are two.
+
+**Why the choice moved.** #25 chose Groq so the link survives a closed laptop.
+#26 pointed it at the laptop so a live demo runs the model the evals measured.
+Both are right, at different moments, and a deploy-time flag has to be wrong at
+one of them - which in practice meant remembering to run `tunnel` before a demo
+and `deploy` after it, with a broken link in between if either was forgotten.
+Deciding per call removes the flag and the ritual: the tunnel being up *is* the
+configuration.
+
+**What counts as unreachable.** An `httpx.HTTPError` - a refused connection, a
+timeout, or the gateway answering 401. All of them mean "that model is not
+available to us". A schema violation deliberately does not: the primary
+answered and got it wrong, which is a real measurement of a 4B model, and
+promoting it to a 27B answer would hide the thing #7 and the router-vs-monolith
+comparison exist to measure.
+
+**Why a cooldown rather than a retry each time.** A turn is roughly seven
+calls. Between demos the tunnel host is dead, so without a cooldown every turn
+would open seven doomed connections before answering. One failure stands the
+primary down for `llm_fallback_cooldown_s`, then it is tried again - so a
+laptop coming back mid-session is noticed without a redeploy.
+
+**Why a stream cannot fall back once it has spoken.** The caller has already
+seen text. Continuing it from a different model splices two answers into one
+that reads as neither, and the seam is invisible in the transcript. Failing is
+the honest option, and synthesis is one call of roughly seven.
+
+**What this does to the evidence.** A completed turn stops being proof that the
+tunnel works, because a dead tunnel now produces a perfectly good answer from
+the wrong machine. That is the exact failure #26's end-to-end check was added
+to catch, so the check grew a second assertion: `/api/health` must name
+`ollama` after the probe. Health reports the provider that actually answered
+rather than the one that was configured, which is what makes the difference
+visible at all - and it is asked of the running provider, never allowed to
+construct one, because health is the endpoint you reach for when something is
+already wrong.
+
+**Why the header refreshes per answer.** `/api/health` reports the live
+provider, but the frontend fetched it once, at mount - before any turn, when
+the server still names the configured primary. So the demo could run entirely
+on Groq while the chip kept saying "Local inference · qwen3.5:4b · No PHI
+leaves this machine", the last of which had become false. The fix keeps the
+seam where it already was: the `done` event now carries the `provider` and
+`model` `live_identity()` read after synthesis, and the header updates from
+every answer. The chip now names the model that produced the text on screen,
+and the safety line flips to "PHI redacted before it leaves" the moment a turn
+falls through to the hosted model.
+
+**Cost.** Which model answered is now a property of the moment rather than of
+the deployment, so "what is this running on?" is a question with a timestamp.
+Health answers it, the header answers it per turn, and the log says loudly when
+a fallback happens - but a demo can still succeed while quietly proving less
+than the presenter thinks. The mitigation is the health assertion in
+`run.ps1 tunnel`, not the honour system.

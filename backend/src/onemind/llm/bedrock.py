@@ -38,6 +38,10 @@ class BedrockProvider:
     def __init__(self, region: str | None = None, model_id: str | None = None) -> None:
         self.region = region or settings.bedrock_region
         self.model_id = model_id or settings.bedrock_model_id
+        # `model` is the name the rest of the codebase reads (`live_identity`,
+        # the eval report); `model_id` is Bedrock's own term, kept because the
+        # API calls below use it. One value, two names.
+        self.model = self.model_id
         self._client: Any = None
 
     def _bedrock(self) -> Any:

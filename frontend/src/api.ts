@@ -52,6 +52,14 @@ export interface Outcome {
   request_id: string;
   /** Server-minted. Echo it back to continue the same conversation. */
   session_id: string;
+  /**
+   * The provider and model that actually answered this turn. With a fallback
+   * configured these can differ from what `/api/health` reported at page load
+   * - a local-first deploy whose turn fell through to the hosted model. The
+   * header refreshes from these on every answer.
+   */
+  provider: string;
+  model: string;
   answer: string;
   agents: string[];
   citations: string[];

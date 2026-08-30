@@ -15,6 +15,17 @@ class Settings(BaseSettings):
 
     # --- provider selection -------------------------------------------------
     llm_provider: str = "ollama"
+    # Used only when `llm_provider` cannot be reached at all. Empty means no
+    # fallback, which is what a local run wants: an unreachable Ollama is a
+    # broken environment and should say so. The hosted build sets `groq`, so
+    # the link keeps answering when the demo laptop is closed. See
+    # `llm/fallback.py` for what counts as unreachable - a model answering
+    # badly is not the same thing as a model that is not there.
+    llm_fallback: str = ""
+    # How long an unreachable primary is left alone after a failure. One turn
+    # is roughly seven calls, and without this each would pay its own failed
+    # connection before falling through.
+    llm_fallback_cooldown_s: float = 30.0
 
     # --- ollama -------------------------------------------------------------
     ollama_host: str = "http://127.0.0.1:11434"

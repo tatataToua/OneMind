@@ -56,7 +56,7 @@ from ..agents.base import BaseSpecialist, SpecialistResult
 from ..config import settings
 from ..guardrails.identity import check_subject, confirmation_statement
 from ..guardrails.phi import PHIRedactor, PHISession
-from ..llm.base import LLMProvider
+from ..llm.base import LLMProvider, live_identity
 from ..observability.trace import SpanKind, Trace
 from . import disambiguate
 from .conversation import Conversation, Pending
@@ -381,6 +381,12 @@ def latest_per_agent(results: list[SpecialistResult]) -> list[SpecialistResult]:
 class OrchestratorOutcome(TypedDict):
     request_id: str
     session_id: str
+    # The provider and model that actually served this turn, read after
+    # synthesis. With a fallback wired in (`llm/fallback.py`) a turn can run on
+    # the hosted model even though `/api/health` named the local one at page
+    # load - so the header trusts this over that.
+    provider: str
+    model: str
     answer: str
     agents: list[str]
     citations: list[str]
@@ -598,11 +604,19 @@ class Orchestrator:
             yield event
         trace.close()
 
+        # After synthesis on purpose: the synthesiser's stream is the last model
+        # call of the turn, so a primary that died anywhere in it has already
+        # opened its cooldown and `live_identity` now names the model that
+        # carried the answer the client is looking at.
+        provider_name, model_name = live_identity(self.provider)
+
         yield {
             "event": "done",
             "data": OrchestratorOutcome(
                 request_id=trace.request_id,
                 session_id=session_id,
+                provider=provider_name,
+                model=model_name,
                 answer=answer,
                 agents=[r.agent for r in results],
                 citations=collect_citations(results),

@@ -132,6 +132,14 @@ export function useOrchestrator(): Orchestrator {
                 // payload has been through outbound re-hydration.
                 setAnswer(result.answer);
                 setSpans(result.trace.spans);
+                // Health is fetched once, at mount, when no turn has run and the
+                // server still names the configured primary. Refresh the two
+                // fields the header reads with what actually answered, so a turn
+                // that fell through to the hosted model updates the chip instead
+                // of leaving a stale - and now untrue - "local" claim up.
+                setHealth((h) =>
+                  h ? { ...h, provider: result.provider, model: result.model } : h,
+                );
               },
               onError: setError,
             },

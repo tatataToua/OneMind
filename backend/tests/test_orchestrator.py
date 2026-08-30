@@ -109,6 +109,15 @@ async def test_clarifying_question_short_circuits_dispatch(make_orchestrator) ->
     assert not [s for s in trace.spans() if s.kind is SpanKind.AGENT]
 
 
+async def test_the_outcome_names_the_model_that_answered(make_orchestrator) -> None:
+    """The header reads `provider`/`model` off every answer rather than trusting
+    the one page-load health call - so the `done` payload has to carry them."""
+    outcome = await make_orchestrator(StubProvider(agents=["clinical"])).run("anything")
+
+    assert outcome["provider"] == "stub"
+    assert outcome["model"] == "stub-model"
+
+
 async def test_single_agent_dispatch_runs_its_tool(make_orchestrator) -> None:
     provider = StubProvider(
         agents=["clinical"],
