@@ -91,8 +91,20 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 # Bare 4-6 digit run used as a patient identifier. Applied last and only when
 # adjacent to a patient-ish word, so "500 mg" and "20 units" survive intact.
+#
+# The label between the word and the digits is written a dozen ways - "patient
+# 12678", "patient id 12678", "patient id of 12678", "patient ID: 12678",
+# "patient number 12678". Found live: the "of" form walked an identifier past
+# this pattern into the model, and because the subject-identity check reads the
+# tokens minted here, that check then abstained and the answer hedged that the
+# name could not be linked to a record. The digits still have to sit where an id
+# would - right after the label - so a stray "the patient has 20 units" is left
+# alone.
 _PATIENT_ID = re.compile(
-    r"\b(patient|member|subscriber|pt\.?)\s+(?:id\s*)?#?\s*(\d{4,6})\b",
+    r"\b(patient|member|subscriber|pt\.?)\s+"
+    r"(?:(?:id|number|no|num)\.?\s*)?"
+    r"(?:of\s+|[:#]\s*)?"
+    r"#?\s*(\d{4,6})\b",
     re.IGNORECASE,
 )
 

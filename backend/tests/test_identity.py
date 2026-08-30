@@ -68,6 +68,26 @@ def test_name_and_id_naming_the_same_person_is_confirmed() -> None:
     assert check.named_patient_id == "12678"
 
 
+@pytest.mark.parametrize(
+    "phrasing",
+    [
+        "with patient id 12678",
+        "with patient id of 12678",
+        "with patient ID: 12678",
+        "patient number 12678",
+    ],
+)
+def test_the_id_is_seen_however_the_request_phrases_it(phrasing: str) -> None:
+    """The check reads the tokens redaction minted, so a patient id the redactor
+    fails to catch is invisible here and the verdict silently drops to
+    not_applicable. Observed live with "patient id of 12678": the id reached the
+    model in the clear and the answer still hedged that the name could not be
+    linked to any record."""
+    check = _check(f"Look up Tobias Kaur {phrasing} and tell me about their blood pressure")
+    assert check.verdict == "confirmed"
+    assert check.named_patient_id == "12678"
+
+
 def test_a_name_alone_is_not_this_check() -> None:
     """No identifier to disagree with. This is the two-hop path, and the check
     must leave it alone."""
@@ -141,12 +161,25 @@ async def test_a_contradictory_request_is_refused_before_any_data_plane(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "supplied",
+    [
+        "with patient id 12678",
+        "with patient id of 12678",
+        "with patient ID: 12678",
+    ],
+)
 async def test_a_consistent_request_still_runs_and_states_the_link(
-    make_orchestrator,
+    make_orchestrator, supplied
 ) -> None:
     """The other half. A name and an identifier that agree must not be refused,
     and the agreement is reported as a computed finding - which is what stops
-    the model reporting "no data found" for a name that appears in no record."""
+    the model reporting "no data found" for a name that appears in no record.
+
+    Parametrised over how the id is worded because the finding is only produced
+    when the redactor tokenised the id: "patient id of 12678" leaked it through
+    in the clear, the check abstained, and the answer hedged that the name could
+    not be linked to any record."""
     provider = StubProvider(
         agents=["remote_monitoring"],
         plans={
@@ -163,11 +196,12 @@ async def test_a_consistent_request_still_runs_and_states_the_link(
         answer="Blood pressure is trending high.",
     )
     outcome = await make_orchestrator(provider).run(
-        "Look up Tobias Kaur with patient id 12678 and tell me whether their "
+        f"Look up Tobias Kaur {supplied} and tell me whether their "
         "blood pressure has been trending high"
     )
 
     assert outcome["is_actionable"] is True
+    assert "12678" not in outcome["redacted_request"]
     findings = {f["check"]: f["statement"] for f in outcome["findings"]}
     assert "named_patient_matches_supplied_id" in findings
     statement = findings["named_patient_matches_supplied_id"]

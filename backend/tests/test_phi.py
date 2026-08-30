@@ -25,6 +25,46 @@ def test_structured_identifiers_are_replaced(session: PHISession) -> None:
 
 
 @pytest.mark.parametrize(
+    "phrasing",
+    [
+        "patient 12678",
+        "patient id 12678",
+        "patient id of 12678",
+        "patient ID: 12678",
+        "patient #12678",
+        "patient number 12678",
+        "patient no. 12678",
+    ],
+)
+def test_a_patient_id_is_redacted_however_it_is_introduced(
+    session: PHISession, phrasing: str
+) -> None:
+    """Observed live: "Look up Tobias Kaur with patient id of 12678 ..." reached
+    the model with 12678 intact - the pattern recognised "patient id 12678" but
+    not the same thing with "of" or a colon between the label and the digits. A
+    leaked identifier also makes the subject-identity check abstain, because that
+    check reads the tokens redaction minted, so the hedge about a name that
+    "could not be linked" came back too."""
+    out = session.redact(f"Look up their chart, {phrasing}, and check the trend")
+    assert "12678" not in out
+    assert "PHI_PATIENT_1" in out
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "the patient took 500 mg",
+        "give the patient 20 units",
+        "patient now weighs 12345 grams",
+    ],
+)
+def test_a_number_near_patient_that_is_not_an_id_survives(session: PHISession, text: str) -> None:
+    """The widened label match still needs the digits to sit where an id would,
+    not merely somewhere after the word "patient"."""
+    assert session.redact(text) == text
+
+
+@pytest.mark.parametrize(
     "written",
     [
         "541631736",
